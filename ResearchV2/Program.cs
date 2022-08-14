@@ -7,15 +7,6 @@ namespace Stock.Analysis._0607
 {
     class Program
     {
-
-        public static readonly ILoggerFactory MyLoggerFactory =
-           LoggerFactory.Create(
-                builder =>
-                {
-                    builder.AddConsole().AddFilter(level => level == LogLevel.Critical);
-                }
-           );
-
         static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();

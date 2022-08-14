@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.Extensions.Hosting;
 
 namespace ResearchV2
@@ -13,6 +14,7 @@ namespace ResearchV2
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            BackgroundJob.Enqueue(() => Console.WriteLine("Simple!"));
             return Task.CompletedTask;
         }
     }

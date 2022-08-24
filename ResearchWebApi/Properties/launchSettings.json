@@ -20,8 +20,8 @@
     "ResearchWebApi": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "ResearchWebApi",
-      "applicationUrl": "https://localhost:49243;http://localhost:59226",
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:5000;http://localhost:59226",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

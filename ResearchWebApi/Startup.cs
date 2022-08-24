@@ -3,10 +3,15 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using ResearchWebApi.Interface;
+using ResearchWebApi.Models;
+using ResearchWebApi.Repository;
+using ResearchWebApi.Services;
 
 namespace ResearchWebApi
 {
@@ -23,10 +28,42 @@ namespace ResearchWebApi
         {
             services.AddControllers();
             services.AddLogging();
+
             var connectString = "Host=localhost;Database=StockResearch;Username=postgres;Password=13";
-            services.AddHangfire(x => x.UsePostgreSqlStorage(connectString));
+
+            // DI
+            services.AddScoped<IResearchOperationService, ResearchOperationService>();
+            services.AddScoped<ICalculateVolumeService, CalculateVolumeService>();
+            services.AddScoped<IDataService, DataService>();
+            services.AddScoped<IMovingAvarageService, MovingAvarageService>();
+            services.AddScoped<IOutputResultService, OutputResultService>();
+            services.AddScoped<IJobsService, JobsService>();
+
+            // DB
+            services.AddDbContextPool<StockModelDbContext>(options => { options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory);});
+            services.AddScoped<IStockModelDataProvider, StockModelDataProvider>();
+            services.AddDbContextPool<CommonResultDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
+            services.AddScoped<IDataProvider<CommonResult>, CommonResultDataProvider>();
+            services.AddDbContextPool<EarnResultDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
+            services.AddScoped<IDataProvider<EarnResult>, EarnResultDataProvider>();
+            services.AddDbContextPool<TrainDetailsDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
+            services.AddScoped<IDataProvider<TrainDetails>, TrainDetailsDataProvider>();
+
+            // Hangfire
+            services.AddTransient<ScopedJobActivator>();
+            services.AddHangfire((serviceProvider, config) => {
+                var scopedProvider = serviceProvider.CreateScope().ServiceProvider;
+                config
+                    //.UseActivator(new ScopedJobActivator(scopedProvider))
+                    .UsePostgreSqlStorage(connectString);
+            });
             services.AddHangfireServer();
+
             services.AddSwaggerGen();
+
+            // AutoMapper
+            services.AddAutoMapper(typeof(Startup));
+            services.AddAutoMapper(typeof(StockModel));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -56,11 +93,6 @@ namespace ResearchWebApi
                 });
             });
 
-            app.Run(async context =>
-            {
-                await context.Response.WriteAsync(getTime() + " My OWIN App");
-            });
-
             // swagger
             app.UseSwagger();
             app.UseSwaggerUI();
@@ -70,5 +102,13 @@ namespace ResearchWebApi
         {
             return DateTime.Now.Millisecond.ToString();
         }
+
+        public readonly ILoggerFactory MyLoggerFactory =
+           LoggerFactory.Create(
+                builder =>
+                {
+                    builder.AddConsole().AddFilter(level => level == LogLevel.Critical);
+                }
+           );
     }
 }

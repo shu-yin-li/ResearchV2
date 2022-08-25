@@ -4,6 +4,7 @@ using System.Linq;
 using AutoMapper;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using ResearchWebApi.Enum;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -41,8 +42,40 @@ namespace ResearchWebApi.Controllers
         public IActionResult SubmitTrainRequests([FromBody] TrainParameter trainParameter)
         {
             PrepareSource(trainParameter.Symbol);
-            BackgroundJob.Enqueue(() => Console.WriteLine("Train"));
-            return Ok();
+            if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.SMA
+                && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
+            {
+                BackgroundJob.Enqueue(()
+                    => _jobsService.TrainTraditionalWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.RSI
+                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
+            {
+                BackgroundJob.Enqueue(() => Console.WriteLine("Traditional RSI"));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.SMA
+                && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
+            {
+                BackgroundJob.Enqueue(() => Console.WriteLine("GNQTS SMA"));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.RSI
+                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
+            {
+                BackgroundJob.Enqueue(() => Console.WriteLine("GNQTS RSI"));
+                return Ok();
+            }
+
+            return BadRequest();
         }
 
         [HttpPost("Test")]

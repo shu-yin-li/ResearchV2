@@ -40,6 +40,7 @@ namespace ResearchWebApi
             services.AddScoped<IJobsService, JobsService>();
             services.AddScoped<ISlidingWindowService, SlidingWindowService>();
             services.AddScoped<ITransTimingService, TransTimingService>();
+            services.AddScoped<IGNQTSAlgorithmService, GNQTSAlgorithmService>();
 
             // DB
             services.AddDbContextPool<StockModelDbContext>(options => { options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory);});

@@ -12,18 +12,18 @@ namespace ResearchWebApi.Services
         private readonly IResearchOperationService _researchOperationService;
         private readonly IDataProvider<CommonResult> _commonResultDataProvider;
         private readonly IDataProvider<EarnResult> _earnResultDataProvider;
-        private readonly IDataProvider<TrainDetails> _trainDetailsDataProvider;
+        private readonly ITrainDetailsDataProvider _trainDetailsDataProvider;
         public OutputResultService(
             IResearchOperationService researchOperationService,
             IDataProvider<CommonResult> commonResultDataProvider,
             IDataProvider<EarnResult> earnResultDataProvider,
-            IDataProvider<TrainDetails> trainDetailsDataProvider
+            ITrainDetailsDataProvider trainDetailsDataProvider
             )
         {
             _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
             _commonResultDataProvider = commonResultDataProvider ?? throw new ArgumentNullException(nameof(commonResultDataProvider));
-            _earnResultDataProvider = earnResultDataProvider ?? throw new ArgumentNullException(nameof(commonResultDataProvider));
-            _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(commonResultDataProvider));
+            _earnResultDataProvider = earnResultDataProvider ?? throw new ArgumentNullException(nameof(earnResultDataProvider));
+            _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
         }
 
         public void UpdateBuyAndHoldResultInDb(double funds, string stockName, List<StockModelDTO> stockList, double periodStartTimeStamp, double fitness)
@@ -93,11 +93,14 @@ namespace ResearchWebApi.Services
             var earnResultList = eachWindowResultParameterList.Select(eachWindowResultParameter => {
                 var returnRate = (eachWindowResultParameter.Result - funds) / funds * 100;
                 var dayNumber = eachWindowResultParameter.StockList.FindAll(stock => stock.Date > eachWindowResultParameter.PeriodStartTimeStamp).Count;
+                var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
+                var algorithmName = "GNQTS";
                 return
                     new EarnResult
                     {
                         CommonResultId = commonResultId,
                         Mode = ResultTypeEnum.Train,
+                        TrainId = $"{algorithmName}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
                         FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TrainPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TrainPeriod.End}",
                         DayNumber = dayNumber,
                         FinalCapital = eachWindowResultParameter.Result,
@@ -122,7 +125,7 @@ namespace ResearchWebApi.Services
                     ExperimentNumber = trainDetailsParameter.ExperimentNumber,
                     Generations = trainDetailsParameter.Generations,
                     SearchNodeNumber = trainDetailsParameter.SearchNodeNumber,
-                    TrainId = $"{slidingWinPairName}_{algorithmName}",
+                    TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
                     TransactionNodes = $"({trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa})",
                     ExperimentNumberOfBest = trainDetailsParameter.ExperimentNumberOfBest,
                     GenerationOfBest = trainDetailsParameter.GenerationOfBest,

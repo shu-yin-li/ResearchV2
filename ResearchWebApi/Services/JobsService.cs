@@ -9,16 +9,16 @@ namespace ResearchWebApi.Services
 {
     public class JobsService: IJobsService
     {
-        private IResearchOperationService _researchOperationService;
-        private IDataService _dataService;
-        private IMapper _mapper;
-        private IOutputResultService _outputResultService;
-        private ISlidingWindowService _slidingWindowService;
-        private IGNQTSAlgorithmService _qtsAlgorithmService;
+        private readonly IResearchOperationService _researchOperationService;
+        private readonly IDataService _dataService;
+        private readonly IMapper _mapper;
+        private readonly IOutputResultService _outputResultService;
+        private readonly ISlidingWindowService _slidingWindowService;
+        private readonly IGNQTSAlgorithmService _qtsAlgorithmService;
+        private readonly ITrainDetailsDataProvider _trainDetailsDataProvider;
 
 
         private const double FUNDS = 10000000;
-        const int EXPERIMENT_NUMBER = 50;
 
         public JobsService(
             IResearchOperationService researchOperationService,
@@ -26,7 +26,8 @@ namespace ResearchWebApi.Services
             IMapper mapper,
             IOutputResultService outputResultService,
             ISlidingWindowService slidingWindowService,
-            IGNQTSAlgorithmService qtsAlgorithmService)
+            IGNQTSAlgorithmService qtsAlgorithmService,
+            ITrainDetailsDataProvider trainDetailsDataProvider)
         {
             _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
@@ -34,6 +35,8 @@ namespace ResearchWebApi.Services
             _outputResultService = outputResultService ?? throw new ArgumentNullException(nameof(outputResultService));
             _slidingWindowService = slidingWindowService ?? throw new ArgumentNullException(nameof(slidingWindowService));
             _qtsAlgorithmService = qtsAlgorithmService ?? throw new ArgumentNullException(nameof(qtsAlgorithmService));
+            _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
+
         }
 
         public void BuyAndHold(string symbol, Period period)
@@ -50,7 +53,7 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateBuyAndHoldResultInDb(FUNDS, symbol, stockListDto, periodStartTimeStamp, result);
         }
 
-        public void Test(Guid trainResultId)
+        public void Test(string trainId)
         {
             throw new NotImplementedException();
         }
@@ -95,25 +98,40 @@ namespace ResearchWebApi.Services
                 int gBestCount = 0;
                 //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
 
-                var randomSource = copyCRandom.Any() ? "C#" : "CRandom";
+                var randomSource = copyCRandom.Any() ? "CRandom" : "C#";
+                var algorithmConst = _qtsAlgorithmService.GetConst();
 
-                for (var e = 0; e < EXPERIMENT_NUMBER; e++)
+                for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
                 {
                     StatusValue gBest;
                     gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, null);
                     CompareGBestByBits(ref bestGbest, ref gBestCount, gBest);
                 }
 
-                var eachWindowResultParameter = new EachWindowResultParameter();
-                var trainDetailsParameter = new TrainDetailsParameter();
+                #endregion
+
+                #region generate result
+
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    SlidingWindow = window
+                };
+
+                var trainDetailsParameter = new TrainDetailsParameter
+                {
+                    RandomSource = randomSource,
+                    Delta = algorithmConst.DELTA,
+                    ExperimentNumber = algorithmConst.EXPERIMENT_NUMBER,
+                    Generations = algorithmConst.GENERATIONS,
+                    SearchNodeNumber = algorithmConst.SEARCH_NODE_NUMBER,
+                    PeriodStartTimeStamp = periodStartTimeStamp
+                };
+
                 if (bestGbest.BuyMa1.Count > 0)
                 {
                     eachWindowResultParameter.Result = bestGbest.Fitness;
-                    eachWindowResultParameter.StockList = stockListDto;
-                    eachWindowResultParameter.PeriodStartTimeStamp = periodStartTimeStamp;
-                    eachWindowResultParameter.SlidingWindow = window;
-
-                    var algorithmConst = _qtsAlgorithmService.GetConst();
                     trainDetailsParameter.BestTestCase =
                         new TestCase
                         {
@@ -124,15 +142,13 @@ namespace ResearchWebApi.Services
                             SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
                             SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2)
                         };
-                    trainDetailsParameter.RandomSource = randomSource;
-                    trainDetailsParameter.Delta = algorithmConst.DELTA;
-                    trainDetailsParameter.ExperimentNumber = algorithmConst.EXPERIMENT_NUMBER;
-                    trainDetailsParameter.Generations = algorithmConst.GENERATIONS;
-                    trainDetailsParameter.SearchNodeNumber = algorithmConst.SEARCH_NODE_NUMBER;
                     trainDetailsParameter.ExperimentNumberOfBest = bestGbest.Experiment;
                     trainDetailsParameter.GenerationOfBest = bestGbest.Generation;
                     trainDetailsParameter.BestCount = gBestCount;
                 }
+
+                eachWindowResultParameterList.Add(eachWindowResultParameter);
+                trainDetailsParameterList.Add(trainDetailsParameter);
 
                 #endregion
 

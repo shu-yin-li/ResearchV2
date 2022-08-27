@@ -6,7 +6,7 @@ using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Repository
 {
-    public class TrainDetailsDataProvider : IDataProvider<TrainDetails>
+    public class TrainDetailsDataProvider : ITrainDetailsDataProvider
     {
         private readonly TrainDetailsDbContext _context;
         public TrainDetailsDataProvider(TrainDetailsDbContext context)
@@ -31,6 +31,11 @@ namespace ResearchWebApi.Repository
             var entity = _context.TrainDetails.Find(myEntity);
             _context.TrainDetails.RemoveRange(entity);
             _context.SaveChanges();
+        }
+
+        public IEnumerable<TrainDetails> Find(string trainId)
+        {
+            return _context.TrainDetails.ToList().FindAll(t => t.TrainId == trainId);
         }
 
         public List<TrainDetails> GetAll(Guid commonResultId)

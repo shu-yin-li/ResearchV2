@@ -11,11 +11,12 @@ namespace ResearchWebApi.Services
     {
         private IResearchOperationService _researchOperationService;
         // GNQTS paremeters
-        private double DELTA = 0.003;
+        private double DELTA = 0.00016;
         const int GENERATIONS = 10000;
         const int SEARCH_NODE_NUMBER = 10;
         const int DIGIT_NUMBER = 8;
         const double RANDOM_MAX = 32767.0;
+        const int EXPERIMENT_NUMBER = 50;
 
         public GNQTSAlgorithmService(IResearchOperationService researchOperationService)
         {
@@ -29,7 +30,8 @@ namespace ResearchWebApi.Services
                 Name = "GNQTS",
                 DELTA = DELTA,
                 GENERATIONS = GENERATIONS,
-                SEARCH_NODE_NUMBER = SEARCH_NODE_NUMBER
+                SEARCH_NODE_NUMBER = SEARCH_NODE_NUMBER,
+                EXPERIMENT_NUMBER = EXPERIMENT_NUMBER
             };
         }
 

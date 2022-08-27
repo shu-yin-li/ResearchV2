@@ -63,7 +63,7 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Buy == StrategyType.SMA
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
-                BackgroundJob.Enqueue(() => Console.WriteLine("GNQTS SMA"));
+                BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
                 return Ok();
             }
 

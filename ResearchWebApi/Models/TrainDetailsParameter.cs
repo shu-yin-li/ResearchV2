@@ -12,6 +12,7 @@ namespace ResearchWebApi.Models
         public double ExperimentNumberOfBest { get; set; }
         public double GenerationOfBest { get; set; }
         public double BestCount { get; set; }
+        public double PeriodStartTimeStamp { get; set; }
 
         public TrainDetailsParameter()
         {

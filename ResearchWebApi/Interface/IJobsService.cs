@@ -10,7 +10,7 @@ namespace ResearchWebApi.Interface
         void TrainTraditionalWithSMA(SlidingWinPair SlidingWinPair, string symbol, Period period);
         void TrainTraditionalWithRSI(SlidingWinPair SlidingWinPair, string symbol, Period period);
         //void TrainTraditionalWithHybrid(SlidingWinPair SlidingWinPair, string symbol, Period period);
-        void Test(Guid trainResultId);
+        void Test(string trainId);
         void BuyAndHold(string symbol, Period period);
     }
 }

@@ -50,7 +50,7 @@ namespace ResearchWebApi
             services.AddDbContextPool<EarnResultDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
             services.AddScoped<IDataProvider<EarnResult>, EarnResultDataProvider>();
             services.AddDbContextPool<TrainDetailsDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
-            services.AddScoped<IDataProvider<TrainDetails>, TrainDetailsDataProvider>();
+            services.AddScoped<ITrainDetailsDataProvider, TrainDetailsDataProvider>();
 
             // Hangfire
             services.AddTransient<ScopedJobActivator>();

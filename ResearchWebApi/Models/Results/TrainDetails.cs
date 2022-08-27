@@ -18,6 +18,7 @@ namespace ResearchWebApi.Models
         public double ExperimentNumberOfBest { get; set; } = 0;
         public double GenerationOfBest { get; set; } = 0;
         public double BestCount { get; set; } = 0;
+        public long ExecuteDate { get; set; } = DateTimeOffset.Now.ToUnixTimeSeconds();
 
         public TrainDetails()
         {

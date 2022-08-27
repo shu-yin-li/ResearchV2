@@ -1,4 +1,4 @@
-﻿namespace ResearchWebApi.Enum
+﻿namespace ResearchWebApi.Enums
 {
     public enum ResultTypeEnum
     {

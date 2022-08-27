@@ -8,6 +8,7 @@ namespace ResearchWebApi.Models
         public List<StockModelDTO> StockList { get; set; }
         public double PeriodStartTimeStamp { get; set; }
         public SlidingWindow SlidingWindow { get; set; }
+        public TrainDetails TrainDetails { get; set; }
 
         public EachWindowResultParameter()
         {

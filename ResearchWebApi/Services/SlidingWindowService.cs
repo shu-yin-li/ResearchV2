@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using ResearchWebApi.Enum;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 

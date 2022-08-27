@@ -1,5 +1,5 @@
 ﻿using System;
-using ResearchWebApi.Enum;
+using ResearchWebApi.Enums;
 
 namespace ResearchWebApi.Models
 {

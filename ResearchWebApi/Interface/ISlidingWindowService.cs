@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using ResearchWebApi.Enum;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Interface

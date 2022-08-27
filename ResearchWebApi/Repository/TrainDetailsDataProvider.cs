@@ -38,6 +38,12 @@ namespace ResearchWebApi.Repository
             return _context.TrainDetails.ToList().FindAll(t => t.TrainId == trainId);
         }
 
+        public TrainDetails FindLatest(string trainId)
+        {
+            var entities = _context.TrainDetails.ToList().FindAll(t => t.TrainId == trainId);
+            return entities.OrderByDescending(t => t.ExecuteDate).FirstOrDefault();
+        }
+
         public List<TrainDetails> GetAll(Guid commonResultId)
         {
             return _context.TrainDetails.ToList().FindAll(t => t.CommonResultId == commonResultId);

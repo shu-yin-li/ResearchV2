@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ResearchWebApi.Enum;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -53,11 +53,14 @@ namespace ResearchWebApi.Services
             var earnResultList = eachWindowResultParameterList.Select(eachWindowResultParameter => {
                 var returnRate = (eachWindowResultParameter.Result - funds) / funds * 100;
                 var dayNumber = eachWindowResultParameter.StockList.FindAll(stock => stock.Date > eachWindowResultParameter.PeriodStartTimeStamp).Count;
+                var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
+                var algorithmName = "Traditional";
                 return
                     new EarnResult
                     {
                         CommonResultId = commonResultId,
                         Mode = ResultTypeEnum.Traditional,
+                        TrainId = $"{algorithmName}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
                         FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TrainPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TrainPeriod.End}",
                         DayNumber = dayNumber,
                         FinalCapital = eachWindowResultParameter.Result,
@@ -75,8 +78,8 @@ namespace ResearchWebApi.Services
                     CommonResultId = commonResultId,
                     SlidingWinPairName = slidingWinPairName,
                     AlgorithmName = algorithmName,
-                    TrainId = $"{slidingWinPairName}_{algorithmName}",
-                    TransactionNodes = $"({trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa})",
+                    TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
+                    TransactionNodes = $"{trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa}",
                 };
             }).ToList();
 
@@ -85,7 +88,7 @@ namespace ResearchWebApi.Services
             _trainDetailsDataProvider.AddBatch(trainDetailsList);
         }
 
-        public void UpdateGNQTSResultsInDb(double funds, string stockName, SlidingWinPair pair, List<EachWindowResultParameter> eachWindowResultParameterList, List<TrainDetailsParameter> trainDetailsParameterList)
+        public void UpdateGNQTSTrainResultsInDb(double funds, string stockName, SlidingWinPair pair, List<EachWindowResultParameter> eachWindowResultParameterList, List<TrainDetailsParameter> trainDetailsParameterList)
         {
             var commonResultId = Guid.NewGuid();
             var commonResult = new CommonResult { Id = commonResultId, InitialCapital = funds, StockName = stockName };
@@ -126,16 +129,40 @@ namespace ResearchWebApi.Services
                     Generations = trainDetailsParameter.Generations,
                     SearchNodeNumber = trainDetailsParameter.SearchNodeNumber,
                     TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
-                    TransactionNodes = $"({trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa})",
+                    TransactionNodes = $"{trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa}",
                     ExperimentNumberOfBest = trainDetailsParameter.ExperimentNumberOfBest,
                     GenerationOfBest = trainDetailsParameter.GenerationOfBest,
                     BestCount = trainDetailsParameter.BestCount,
+                    ExecuteDate = commonResult.ExecuteDate
                 };
             }).ToList();
 
             _commonResultDataProvider.Add(commonResult);
             _earnResultDataProvider.AddBatch(earnResultList);
             _trainDetailsDataProvider.AddBatch(trainDetailsList);
+        }
+
+        public void UpdateGNQTSTestResultsInDb(double funds, List<EachWindowResultParameter> eachWindowResultParameterList)
+        {
+            var earnResultList = eachWindowResultParameterList.Select(eachWindowResultParameter => {
+                var returnRate = (eachWindowResultParameter.Result - funds) / funds * 100;
+                var dayNumber = eachWindowResultParameter.StockList.FindAll(stock => stock.Date > eachWindowResultParameter.PeriodStartTimeStamp).Count;
+                return
+                    new EarnResult
+                    {
+                        CommonResultId = eachWindowResultParameter.TrainDetails.CommonResultId,
+                        Mode = ResultTypeEnum.Test,
+                        TrainId = eachWindowResultParameter.TrainDetails.TrainId,
+                        FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TestPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TestPeriod.End}",
+                        DayNumber = dayNumber,
+                        FinalCapital = eachWindowResultParameter.Result,
+                        FinalEarn = eachWindowResultParameter.Result - funds,
+                        ReturnRates = returnRate,
+                        ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10)
+                    };
+            }).ToList();
+
+            _earnResultDataProvider.AddBatch(earnResultList);
         }
 
         #region Private method

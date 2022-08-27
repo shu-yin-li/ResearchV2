@@ -1,5 +1,5 @@
 ﻿using System;
-namespace ResearchWebApi.Enum
+namespace ResearchWebApi.Enums
 {
     public enum MaSelection
     {

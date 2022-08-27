@@ -53,9 +53,51 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateBuyAndHoldResultInDb(FUNDS, symbol, stockListDto, periodStartTimeStamp, result);
         }
 
-        public void Test(string trainId)
+        public void Test(SlidingWinPair pair, string algorithmName, string symbol, Period period)
         {
-            throw new NotImplementedException();
+            List<SlidingWindow> slidingWindows = pair.IsStar
+                ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
+                : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
+
+            var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
+            var eachWindowResultParameterList = new List<EachWindowResultParameter>();
+
+            slidingWindows.ForEach((window) =>
+            {
+                var periodStart = window.TestPeriod.Start;
+                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start, window.TestPeriod.End.AddDays(1));
+                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+
+                var trainId = $"{algorithmName}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
+                var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
+                if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
+                var transNodes = trainDetails.TransactionNodes.Split(",");
+                var testCase = new TestCase {
+                    Funds = FUNDS,
+                    Symbol = symbol,
+                    BuyShortTermMa = int.Parse(transNodes[0]),
+                    BuyLongTermMa = int.Parse(transNodes[1]),
+                    SellShortTermMa = int.Parse(transNodes[2]),
+                    SellLongTermMa = int.Parse(transNodes[3]),
+                };
+
+                var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp);
+                var earns = _researchOperationService.GetEarningsResults(transactions);
+                var result = Math.Round(earns, 10);
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    SlidingWindow = window,
+                    Result = result,
+                    TrainDetails = trainDetails
+                };
+
+                eachWindowResultParameterList.Add(eachWindowResultParameter);
+            });
+
+            _outputResultService.UpdateGNQTSTestResultsInDb(FUNDS, eachWindowResultParameterList);
         }
 
         public void TrainGNQTSWithRSI(SlidingWinPair SlidingWinPair, string symbol, Period period)
@@ -153,7 +195,7 @@ namespace ResearchWebApi.Services
                 #endregion
 
             });
-            _outputResultService.UpdateGNQTSResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
+            _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
         public void TrainTraditionalWithRSI(SlidingWinPair SlidingWinPair, string symbol, Period period)
@@ -206,6 +248,7 @@ namespace ResearchWebApi.Services
 
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
+            var algorithmConst = _qtsAlgorithmService.GetConst();
             slidingWindows.ForEach((window) =>
             {
                 var periodStart = window.TrainPeriod.Start;
@@ -214,8 +257,22 @@ namespace ResearchWebApi.Services
                 var stockList = _dataService.GetStockDataFromDb(symbol, period.Start, period.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
 
-                var eachWindowResultParameter = new EachWindowResultParameter();
-                var trainDetailsParameter = new TrainDetailsParameter();
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    SlidingWindow = window
+                };
+
+                var trainDetailsParameter = new TrainDetailsParameter
+                {
+                    Delta = algorithmConst.DELTA,
+                    ExperimentNumber = algorithmConst.EXPERIMENT_NUMBER,
+                    Generations = algorithmConst.GENERATIONS,
+                    SearchNodeNumber = algorithmConst.SEARCH_NODE_NUMBER,
+                    PeriodStartTimeStamp = periodStartTimeStamp
+                };
+
                 testCases.ForEach(testCase => {
                     var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp);
                     var earns = _researchOperationService.GetEarningsResults(transactions);
@@ -223,13 +280,8 @@ namespace ResearchWebApi.Services
                     if (result != 0 && result > eachWindowResultParameter.Result) {
                         trainDetailsParameter.BestTestCase = testCase;
                         eachWindowResultParameter.Result = result;
-                        eachWindowResultParameter.StockList = stockListDto;
-                        eachWindowResultParameter.PeriodStartTimeStamp = periodStartTimeStamp;
-                        eachWindowResultParameter.SlidingWindow = window;
                     }
                 });
-
-                if (trainDetailsParameter.BestTestCase == null) return;
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);
                 trainDetailsParameterList.Add(trainDetailsParameter);

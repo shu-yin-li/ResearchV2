@@ -4,7 +4,7 @@ using System.Linq;
 using AutoMapper;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
-using ResearchWebApi.Enum;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -82,8 +82,26 @@ namespace ResearchWebApi.Controllers
         public IActionResult SubmitTestRequests([FromBody] TrainParameter trainParameter)
         {
             PrepareSource(trainParameter.Symbol);
-            BackgroundJob.Enqueue(() => Console.WriteLine("Test"));
-            return Ok();
+
+            if (trainParameter.MaSelection == MaSelection.Traditional)
+                return Ok("Calculated the best indicator sets when training in traditional mode. So no need to Test for Traditional mod");
+
+            if (trainParameter.TransactionTiming.Buy == StrategyType.SMA
+                && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
+            {
+                BackgroundJob.Enqueue(()
+                    => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period));
+                return Ok();
+            }
+
+            if (trainParameter.TransactionTiming.Buy == StrategyType.RSI
+                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
+            {
+                BackgroundJob.Enqueue(() => Console.WriteLine("Traditional RSI"));
+                return Ok();
+            }
+
+            return BadRequest();
         }
 
         [HttpPost("BuyAndHold")]

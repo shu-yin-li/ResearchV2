@@ -86,7 +86,10 @@ namespace ResearchWebApi
             });
 
             // Hangfire
-            app.UseHangfireDashboard();
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = new[] { new MyAuthorizationFilter() }
+            });
             app.Use((context, next) =>
             {
                 return next().ContinueWith(result =>

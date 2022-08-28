@@ -33,7 +33,7 @@ namespace ResearchWebApi.Models
             foreach (var prop in properties) {
                 var key = Convert.ToInt32(prop.Name.Replace("Ma", ""));
                 var value = Convert.ToDouble(prop.GetValue(source));
-                maList.Add(key, value == 0 ? null : value);
+                maList.Add(key, value == 0 ? (double?)null : (double?)value);
             }
 
             return maList;

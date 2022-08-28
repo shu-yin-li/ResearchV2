@@ -42,7 +42,7 @@ namespace ResearchWebApi.Services
                         : prePrice;
                 }
 
-                maProperty.SetValue(stock, sumPrice == 0 ? null : (double)Math.Round(((decimal)sumPrice) / avgDay, 10, MidpointRounding.AwayFromZero));
+                maProperty.SetValue(stock, sumPrice == 0 ? (double?)null : (double?)Math.Round(((decimal)sumPrice) / avgDay, 10, MidpointRounding.AwayFromZero));
                 
                 prePrice = sumPrice;
                 index++;

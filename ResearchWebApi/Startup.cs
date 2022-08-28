@@ -29,7 +29,7 @@ namespace ResearchWebApi
             services.AddControllers();
             services.AddLogging();
 
-            var connectString = "Host=localhost;Database=StockResearch;Username=postgres;Password=13";
+            var connectString = "Host=34.80.90.73;Database=stockresearch;Username=postgres;Password=F7PVvyi1Vegc";
 
             // DI
             services.AddScoped<IResearchOperationService, ResearchOperationService>();

@@ -16,6 +16,7 @@ namespace ResearchWebApi.Services
         private readonly ISlidingWindowService _slidingWindowService;
         private readonly IGNQTSAlgorithmService _qtsAlgorithmService;
         private readonly ITrainDetailsDataProvider _trainDetailsDataProvider;
+        private readonly IFileHandler _fileHandler;
 
 
         private const double FUNDS = 10000000;
@@ -27,7 +28,8 @@ namespace ResearchWebApi.Services
             IOutputResultService outputResultService,
             ISlidingWindowService slidingWindowService,
             IGNQTSAlgorithmService qtsAlgorithmService,
-            ITrainDetailsDataProvider trainDetailsDataProvider)
+            ITrainDetailsDataProvider trainDetailsDataProvider,
+            IFileHandler fileHandler)
         {
             _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
@@ -36,7 +38,7 @@ namespace ResearchWebApi.Services
             _slidingWindowService = slidingWindowService ?? throw new ArgumentNullException(nameof(slidingWindowService));
             _qtsAlgorithmService = qtsAlgorithmService ?? throw new ArgumentNullException(nameof(qtsAlgorithmService));
             _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
-
+            _fileHandler = fileHandler ?? throw new ArgumentNullException(nameof(fileHandler));
         }
 
         public void BuyAndHold(string symbol, Period period)
@@ -105,16 +107,15 @@ namespace ResearchWebApi.Services
             throw new NotImplementedException();
         }
 
-        public void TrainGNQTSWithSMA(SlidingWinPair pair, string symbol, Period period)
+        public void TrainGNQTSWithSMA(SlidingWinPair pair, string symbol, Period period, bool isCRandom)
         {
             var random = new Random(343);
             Queue<int> cRandom = new Queue<int>();
-            // TODO: Add for C Random
-            //if (isCrandom)
-            //{
-            //    Console.WriteLine("Reading C Random.");
-            //    cRandom = _fileHandler.Readcsv("Data/srand343");
-            //}
+            if (isCRandom)
+            {
+                Console.WriteLine("Reading C Random.");
+                cRandom = _fileHandler.Readcsv("Data/srand343");
+            }
 
             List<SlidingWindow> slidingWindows = pair.IsStar
                 ? _slidingWindowService.GetSlidingWindows(period, pair.Train)

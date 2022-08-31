@@ -5,7 +5,7 @@ namespace ResearchWebApi.Interface
 {
     public interface IJobsService
     {
-        void TrainGNQTSWithSMA(SlidingWinPair pair, string symbol, Period period);
+        void TrainGNQTSWithSMA(SlidingWinPair pair, string symbol, Period period, bool trainParameter);
         void TrainGNQTSWithRSI(SlidingWinPair pair, string symbol, Period period);
         void TrainTraditionalWithSMA(SlidingWinPair pair, string symbol, Period period);
         void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period);

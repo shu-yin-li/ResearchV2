@@ -10,6 +10,7 @@ namespace ResearchWebApi.Models
         public TransactionTiming TransactionTiming { get; set; }
         public Period Period { get; set; }
         public string Symbol { get; set; }
+        public bool IsCRandom { get; set; } = false;
 
         public TrainParameter()
         {

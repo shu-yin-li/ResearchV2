@@ -41,7 +41,8 @@ namespace ResearchWebApi
             services.AddScoped<ISlidingWindowService, SlidingWindowService>();
             services.AddScoped<ITransTimingService, TransTimingService>();
             services.AddScoped<IGNQTSAlgorithmService, GNQTSAlgorithmService>();
-
+            services.AddScoped<IFileHandler, FileHandler>();
+            
             // DB
             services.AddDbContextPool<StockModelDbContext>(options => { options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory);});
             services.AddScoped<IStockModelDataProvider, StockModelDataProvider>();

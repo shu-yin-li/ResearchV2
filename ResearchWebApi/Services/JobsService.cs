@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
@@ -255,7 +255,7 @@ namespace ResearchWebApi.Services
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
 
-                var stockList = _dataService.GetStockDataFromDb(symbol, period.Start, period.End.AddDays(1));
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
 
                 var eachWindowResultParameter = new EachWindowResultParameter

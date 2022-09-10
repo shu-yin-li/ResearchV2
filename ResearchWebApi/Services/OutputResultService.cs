@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ResearchWebApi.Enums;
@@ -66,7 +66,7 @@ namespace ResearchWebApi.Services
                         FinalCapital = eachWindowResultParameter.Result,
                         FinalEarn = eachWindowResultParameter.Result - funds,
                         ReturnRates = returnRate,
-                        ARR = Math.Round(Math.Pow(CalculateARR(returnRate, dayNumber), 251.6) - 1, 10)
+                        ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10)
                     };
             }).ToList();
             

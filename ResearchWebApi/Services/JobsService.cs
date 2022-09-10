@@ -212,33 +212,25 @@ namespace ResearchWebApi.Services
             List<int> longMaList = new List<int> { 120, 240 };
             shortMaList.ForEach((ma1) => {
                 midMaList.ForEach((ma2) => {
-                    shortMaList.ForEach((ma3) => {
-                        midMaList.ForEach((ma4) => {
-                            testCases.Add(new TestCase
-                            {
-                                Funds = FUNDS,
-                                BuyShortTermMa = ma1,
-                                BuyLongTermMa = ma2,
-                                SellShortTermMa = ma3,
-                                SellLongTermMa = ma4,
-                            });
-                        });
+                    testCases.Add(new TestCase
+                    {
+                        Funds = FUNDS,
+                        BuyShortTermMa = ma1,
+                        BuyLongTermMa = ma2,
+                        SellShortTermMa = ma1,
+                        SellLongTermMa = ma2,
                     });
                 });
             });
             midMaList.ForEach((ma1) => {
                 longMaList.ForEach((ma2) => {
-                    midMaList.ForEach((ma3) => {
-                        longMaList.ForEach((ma4) => {
-                            testCases.Add(new TestCase
-                            {
-                                Funds = FUNDS,
-                                BuyShortTermMa = ma1,
-                                BuyLongTermMa = ma2,
-                                SellShortTermMa = ma3,
-                                SellLongTermMa = ma4,
-                            });
-                        });
+                    testCases.Add(new TestCase
+                    {
+                        Funds = FUNDS,
+                        BuyShortTermMa = ma1,
+                        BuyLongTermMa = ma2,
+                        SellShortTermMa = ma1,
+                        SellLongTermMa = ma2,
                     });
                 });
             });

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CsvHelper;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -40,7 +41,7 @@ namespace ResearchWebApi.Services
             DELTA = delda;
         }
 
-        public StatusValue Fit(Queue<int> cRandom, Random random, double funds, List<StockModelDTO> stockList, int experiment, double periodStartTimeStamp, CsvWriter csv)
+        public StatusValue Fit(Queue<int> cRandom, Random random, double funds, List<StockModelDTO> stockList, int experiment, double periodStartTimeStamp, StrategyType strategyType, CsvWriter csv)
         {
             var iteration = 0;
             
@@ -68,7 +69,7 @@ namespace ResearchWebApi.Services
             //var index = 0;
             particles.ForEach((p) =>
             {
-                p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp);
+                p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp, strategyType);
                 //#region debug
 
                 //csv.WriteField($"P{index}");
@@ -132,7 +133,7 @@ namespace ResearchWebApi.Services
 
                 particles.ForEach((p) =>
                 {
-                    p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp);
+                    p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp, strategyType);
                     //#region debug
 
                     //csv.WriteField($"P{index}");
@@ -423,7 +424,7 @@ namespace ResearchWebApi.Services
                 var buyMa2 = Utils.GetMaNumber(p.CurrentFitness.BuyMa2);
                 var sellMa1 = Utils.GetMaNumber(p.CurrentFitness.SellMa1);
                 var sellMa2 = Utils.GetMaNumber(p.CurrentFitness.SellMa2);
-                p.TestCase = new TestCase
+                p.TestCase = new TestCaseSMA
                 {
                     Funds = funds,
                     BuyShortTermMa = buyMa1,
@@ -436,12 +437,13 @@ namespace ResearchWebApi.Services
         }
 
         public double GetFitness(
-            TestCase currentTestCase,
+            TestCaseSMA currentTestCase,
             List<StockModelDTO> stockList,
-            double periodStartTimeStamp)
+            double periodStartTimeStamp,
+            StrategyType strategyType)
         {
             
-            var transactions = _researchOperationService.GetMyTransactions(stockList, currentTestCase, periodStartTimeStamp);
+            var transactions = _researchOperationService.GetMyTransactions(stockList, currentTestCase, periodStartTimeStamp, strategyType);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
             return result;

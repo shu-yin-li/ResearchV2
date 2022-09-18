@@ -1,6 +1,8 @@
-﻿namespace ResearchWebApi.Models
+﻿using ResearchWebApi.Interface;
+
+namespace ResearchWebApi.Models
 {
-    public class TestCase
+    public class TestCaseSMA: ITestCase
     {
         public string Symbol { get; set; } = "AAPL";
         public double Funds { get; set; }
@@ -9,9 +11,9 @@
         public int SellShortTermMa { get; set; }
         public int SellLongTermMa { get; set; }
 
-        public TestCase DeepClone()
+        public TestCaseSMA DeepClone()
         {
-            return new TestCase {
+            return new TestCaseSMA {
                 Symbol = Symbol,
                 Funds = Funds,
                 BuyShortTermMa = BuyShortTermMa,

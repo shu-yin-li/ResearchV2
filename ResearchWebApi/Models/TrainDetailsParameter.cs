@@ -1,9 +1,11 @@
 ﻿using System;
+using ResearchWebApi.Interface;
+
 namespace ResearchWebApi.Models
 {
     public class TrainDetailsParameter
     {
-        public TestCase BestTestCase { get; set; }
+        public ITestCase BestTestCase { get; set; }
         public string RandomSource { get; set; }
         public double Delta { get; set; }
         public int ExperimentNumber { get; set; }

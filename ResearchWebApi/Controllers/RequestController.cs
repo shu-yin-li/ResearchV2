@@ -108,7 +108,7 @@ namespace ResearchWebApi.Controllers
         public IActionResult SubmitBuyAndHoldRequests(string symbol, [FromBody] Period period)
         {
             PrepareSource(symbol);
-            BackgroundJob.Enqueue(() => _jobsService.BuyAndHold(symbol, period));
+            BackgroundJob.Enqueue(() => _jobsService.BuyAndHold(symbol, period, ResultTypeEnum.Train));
             return Ok();
         }
 

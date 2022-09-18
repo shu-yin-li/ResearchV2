@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ResearchWebApi.Enums;
+using ResearchWebApi.Models;
 
 namespace ResearchWebApi
 {
@@ -27,6 +29,25 @@ namespace ResearchWebApi
                 return 1 + metrix[7] * 1 + metrix[6] * 2 + metrix[5] * 4 + metrix[4] * 8 + metrix[3] * 16 + metrix[2] * 32 + metrix[1] * 64 + metrix[0] * 128;
             else
                 return 0;
+        }
+
+        public static List<SlidingWinPair> Get13TraditionalSlidingWindows()
+        {
+            return new List<SlidingWinPair> {
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.M, Test = PeriodEnum.M},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.Q, Test = PeriodEnum.M},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.H, Test = PeriodEnum.M},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.Y, Test = PeriodEnum.M},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.Q, Test = PeriodEnum.Q},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.H, Test = PeriodEnum.Q},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.Y, Test = PeriodEnum.Q},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.H, Test = PeriodEnum.H},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.Y, Test = PeriodEnum.H},
+                new SlidingWinPair { IsStar = false, Train = PeriodEnum.Y, Test = PeriodEnum.Y},
+                new SlidingWinPair { IsStar = true, Train = PeriodEnum.M, Test = PeriodEnum.M},
+                new SlidingWinPair { IsStar = true, Train = PeriodEnum.Q, Test = PeriodEnum.Q},
+                new SlidingWinPair { IsStar = true, Train = PeriodEnum.H, Test = PeriodEnum.H},
+            };
         }
     }
 }

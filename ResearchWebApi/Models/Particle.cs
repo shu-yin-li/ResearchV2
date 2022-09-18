@@ -10,7 +10,7 @@ namespace ResearchWebApi.Models
         public List<double> SellMa1Beta { get; set; } = new List<double> { 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 };
         public List<double> SellMa2Beta { get; set; } = new List<double> { 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 };
 
-        public TestCase TestCase { get; set; }
+        public TestCaseSMA TestCase { get; set; }
 
         //public XValue BestFitness { get; set; } = new XValue();
         //public XValue WorstFitness { get; set; } = new XValue();

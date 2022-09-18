@@ -4,7 +4,7 @@ using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Services
 {
-    public class TransTimingService: ITransTimingService
+    public class TransTimingService : ITransTimingService
     {
         public TransTimingService()
         {
@@ -48,6 +48,13 @@ namespace ResearchWebApi.Services
                 condition2 = shortMaGoUp && LongMaGoUp;
             }
             return condition1 && condition2;
+        }
+
+        // RSI
+        public bool TimeToBuy(double? rsi, double? prevRsi, double overSell, bool hasQty)
+        {
+            var check = prevRsi >= overSell;
+            return rsi < overSell && hasQty == false && check;
         }
 
         // 死亡交叉
@@ -106,6 +113,14 @@ namespace ResearchWebApi.Services
             }
         }
 
+        // RSI
+        public bool TimeToSell(double? rsi, double? prevRsi, double overBuy, bool hasQty)
+        {
+            var check = prevRsi <= overBuy;
+            return rsi > overBuy && hasQty == false && check;
+        }
+        #region Private Method
+
         private static double calculateStopPrice(double lastTransPrice, double maxPrice, double sellPct)
         {
             var stopPrice = maxPrice * (100 - sellPct) / 100;
@@ -119,5 +134,8 @@ namespace ResearchWebApi.Services
                 return stopPrice;
             }
         }
+
+        #endregion
+
     }
 }

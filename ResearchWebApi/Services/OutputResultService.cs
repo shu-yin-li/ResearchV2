@@ -26,23 +26,31 @@ namespace ResearchWebApi.Services
             _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
         }
 
-        public void UpdateBuyAndHoldResultInDb(double funds, string stockName, List<StockModelDTO> stockList, double periodStartTimeStamp, double fitness)
+        public void UpdateBuyAndHoldResultInDb(double funds, string stockName, List<EachWindowResultParameter> eachWindowResultParameterList)
         {
             var commonResultId = Guid.NewGuid();
             var commonResult = new CommonResult { Id = commonResultId, InitialCapital = funds, StockName = stockName };
-            var returnRate = (fitness - funds) / funds * 100;
-            var earnResult =
-                new EarnResult
+            var earnResultList = eachWindowResultParameterList.Select(eachWindowResultParameter => {
+                var returnRate = (eachWindowResultParameter.Result - funds) / funds * 100;
+                var dayNumber = eachWindowResultParameter.DayNumber;
+                var algorithmName = "BuyAndHold";
+                var dayARR = Math.Round(CalculateARR(returnRate, (double)dayNumber) - 1, 10);
+
+                return new EarnResult
                 {
                     CommonResultId = commonResultId,
                     Mode = ResultTypeEnum.BuyAndHold,
-                    FinalCapital = fitness,
-                    FinalEarn = fitness - funds,
+                    TrainId = $"{algorithmName}_{eachWindowResultParameter.SlidingWinPairName}",
+                    FromDateToDate = $"{eachWindowResultParameter.Period.Start} - {eachWindowResultParameter.Period.End}",
+                    FinalCapital = eachWindowResultParameter.Result,
+                    FinalEarn = eachWindowResultParameter.Result - funds,
                     ReturnRates = returnRate,
-                    ARR = Math.Round(CalculateARR(returnRate, 10) - 1, 10)
+                    DayNumber = dayNumber,
+                    ARR = Math.Round(Math.Pow(dayARR + 1, 251.7) - 1, 10)
                 };
+            }).ToList();
             _commonResultDataProvider.Add(commonResult);
-            _earnResultDataProvider.Add(earnResult);
+            _earnResultDataProvider.AddBatch(earnResultList);
         }
 
         public void UpdateTraditionalResultsInDb(double funds, string stockName, SlidingWinPair pair, List<EachWindowResultParameter> eachWindowResultParameterList, List<TrainDetailsParameter> trainDetailsParameterList)
@@ -73,13 +81,14 @@ namespace ResearchWebApi.Services
             var trainDetailsList = trainDetailsParameterList.Select(trainDetailsParameter => {
                 var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
                 var algorithmName = "Traditional";
+                var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
                 return new TrainDetails
                 {
                     CommonResultId = commonResultId,
                     SlidingWinPairName = slidingWinPairName,
                     AlgorithmName = algorithmName,
                     TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
-                    TransactionNodes = $"{trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa}",
+                    TransactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}",
                 };
             }).ToList();
 
@@ -118,6 +127,7 @@ namespace ResearchWebApi.Services
             var trainDetailsList = trainDetailsParameterList.Select(trainDetailsParameter => {
                 var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
                 var algorithmName = "GNQTS";
+                var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
                 return new TrainDetails
                 {
                     CommonResultId = commonResultId,
@@ -129,7 +139,7 @@ namespace ResearchWebApi.Services
                     Generations = trainDetailsParameter.Generations,
                     SearchNodeNumber = trainDetailsParameter.SearchNodeNumber,
                     TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
-                    TransactionNodes = $"{trainDetailsParameter.BestTestCase.BuyShortTermMa},{trainDetailsParameter.BestTestCase.BuyLongTermMa},{trainDetailsParameter.BestTestCase.SellShortTermMa},{trainDetailsParameter.BestTestCase.SellLongTermMa}",
+                    TransactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}",
                     ExperimentNumberOfBest = trainDetailsParameter.ExperimentNumberOfBest,
                     GenerationOfBest = trainDetailsParameter.GenerationOfBest,
                     BestCount = trainDetailsParameter.BestCount,
@@ -178,6 +188,12 @@ namespace ResearchWebApi.Services
         private double CalculateARR(double returnRate, int dayNumber)
         {
             double exp = 1 / (double)dayNumber;
+            return Math.Pow(returnRate * 0.01 + 1, exp);
+        }
+
+        private double CalculateARR(double returnRate, double dayNumber)
+        {
+            double exp = 1 / dayNumber;
             return Math.Pow(returnRate * 0.01 + 1, exp);
         }
 

@@ -13,6 +13,11 @@ namespace ResearchWebApi.Models
         public int Fees { get; set; } = 0;
         public int Tax { get; set; } = 0;
         public double Balance { get; set; } = 0;
+
+    }
+
+    public class StockTransactionSMA : StockTransaction
+    {
         // for validation
         public double? BuyShortMaPrice1DayBefore { get; set; }
         public double? BuyLongMaPrice1DayBefore { get; set; }
@@ -27,7 +32,7 @@ namespace ResearchWebApi.Models
     public class StockTransList
     {
         public string Name { get; set; }
-        public TestCase TestCase { get; set; }
+        public TestCaseSMA TestCase { get; set; }
         public List<StockTransaction> Transactions { get; set; }
     }
 

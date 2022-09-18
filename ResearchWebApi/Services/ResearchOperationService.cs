@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -31,8 +32,9 @@ namespace ResearchWebApi.Services
             }
         }
 
-        public List<StockTransaction> ProfitSettlement(double currentStock, List<StockModelDTO> stockList, TestCase testCase, List<StockTransaction> myTrans, double periodEnd)
+        public List<StockTransaction> ProfitSettlement(double currentStock, List<StockModelDTO> stockList, ITestCase testCase, List<StockTransaction> myTrans, double periodEnd)
         {
+            var testCaseSma = (TestCaseSMA)testCase;
             var hasQty = myTrans.Last().TransType == TransactionType.Buy;
             if (hasQty && myTrans.Last().TransTime == stockList.Last().Date) {
                 myTrans.RemoveAt(myTrans.Count - 1);
@@ -42,7 +44,7 @@ namespace ResearchWebApi.Services
                 //var timeString = Utils.UnixTimeStampToDateTime(periodEnd);
                 var price = currentStock;
                 var sellMaValList = stockList.TakeLast(2);
-                myTrans.Add(new StockTransaction
+                myTrans.Add(new StockTransactionSMA
                 {
                     TransTime = periodEnd,
                     //TransTimeString = $"{timeString.Year}-{timeString.Month}-{timeString.Day}",
@@ -50,10 +52,10 @@ namespace ResearchWebApi.Services
                     TransType = TransactionType.Sell,
                     TransVolume = myTrans.Last().TransVolume,
                     Balance = myTrans.Last().Balance + Math.Round(currentStock * myTrans.Last().TransVolume, 10, MidpointRounding.ToZero),
-                    SellShortMaPrice = sellMaValList.LastOrDefault().MaList[testCase.SellShortTermMa] ?? 0,
-                    SellLongMaPrice = sellMaValList.LastOrDefault().MaList[testCase.SellLongTermMa] ?? 0,
-                    SellShortMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCase.SellShortTermMa] ?? 0,
-                    SellLongMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCase.SellLongTermMa] ?? 0,
+                    SellShortMaPrice = sellMaValList.LastOrDefault().MaList[testCaseSma.SellShortTermMa] ?? 0,
+                    SellLongMaPrice = sellMaValList.LastOrDefault().MaList[testCaseSma.SellLongTermMa] ?? 0,
+                    SellShortMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCaseSma.SellShortTermMa] ?? 0,
+                    SellLongMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCaseSma.SellLongTermMa] ?? 0,
                 });
             }
 
@@ -94,10 +96,6 @@ namespace ResearchWebApi.Services
                 TransType = TransactionType.Buy,
                 TransVolume = volume,
                 Balance = lastTrans.Balance - Math.Round(buyPrice * volume, 10, MidpointRounding.ToZero),
-                BuyShortMaPrice = 0,
-                BuyLongMaPrice = 0,
-                BuyShortMaPrice1DayBefore = 0,
-                BuyLongMaPrice1DayBefore = 0,
             };
             myTransactions.Add(lastTrans);
 
@@ -110,10 +108,6 @@ namespace ResearchWebApi.Services
                 TransType = TransactionType.Sell,
                 TransVolume = volume,
                 Balance = lastTrans.Balance + Math.Round(sellPrice * volume, 10, MidpointRounding.ToZero),
-                SellShortMaPrice = 0,
-                SellLongMaPrice = 0,
-                SellShortMaPrice1DayBefore = 0,
-                SellLongMaPrice1DayBefore = 0,
             };
             myTransactions.Add(lastTrans);
             return myTransactions;
@@ -121,8 +115,9 @@ namespace ResearchWebApi.Services
 
         public List<StockTransaction> GetMyTransactions(
             List<StockModelDTO> stockList,
-            TestCase testCase,
-            double periodStartTimeStamp)
+            ITestCase testCase,
+            double periodStartTimeStamp,
+            StrategyType strategyType)
         {
             var myTransactions = new List<StockTransaction>();
             var lastTrans = new StockTransaction
@@ -136,19 +131,37 @@ namespace ResearchWebApi.Services
             };
             myTransactions.Add(lastTrans);
 
+            if (strategyType == StrategyType.SMA) GetMyTransactionsSMA(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
+            if (strategyType == StrategyType.RSI) GetMyTransactionsRSI(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
+
+            var currentStock = stockList.Last().Price ?? 0;
+            var periodEnd = stockList.Last().Date;
+            ProfitSettlement(currentStock, stockList, testCase, myTransactions, periodEnd);
+
+            return myTransactions;
+        }
+
+        public List<StockTransaction> GetMyTransactionsSMA(
+            List<StockTransaction> myTransactions,
+            List<StockModelDTO> stockList,
+            ITestCase testCase,
+            double periodStartTimeStamp,
+            StockTransaction lastTrans)
+        {
             bool hasQty = false;
             StockModelDTO prevStock = stockList.FirstOrDefault();
+            var testCaseSma = (TestCaseSMA)testCase;
             stockList.ForEach(stock =>
             {
-                var buyShortMaVal = stock.MaList[testCase.BuyShortTermMa] ?? null;
-                var buyLongMaVal = stock.MaList[testCase.BuyLongTermMa] ?? null;
-                var sellShortMa = stock.MaList[testCase.SellShortTermMa] ?? null;
-                var sellLongMaVal = stock.MaList[testCase.SellLongTermMa] ?? null;
+                var buyShortMaVal = stock.MaList[testCaseSma.BuyShortTermMa] ?? null;
+                var buyLongMaVal = stock.MaList[testCaseSma.BuyLongTermMa] ?? null;
+                var sellShortMa = stock.MaList[testCaseSma.SellShortTermMa] ?? null;
+                var sellLongMaVal = stock.MaList[testCaseSma.SellLongTermMa] ?? null;
 
-                var prevBuyShortMa = prevStock.MaList[testCase.BuyShortTermMa] ?? null;
-                var prevBuyLongMaVal = prevStock.MaList[testCase.BuyLongTermMa] ?? null;
-                var prevSellShortMaVal = prevStock.MaList[testCase.SellShortTermMa] ?? null;
-                var prevSellLongMaVal = prevStock.MaList[testCase.SellLongTermMa] ?? null;
+                var prevBuyShortMa = prevStock.MaList[testCaseSma.BuyShortTermMa] ?? null;
+                var prevBuyLongMaVal = prevStock.MaList[testCaseSma.BuyLongTermMa] ?? null;
+                var prevSellShortMaVal = prevStock.MaList[testCaseSma.SellShortTermMa] ?? null;
+                var prevSellLongMaVal = prevStock.MaList[testCaseSma.SellLongTermMa] ?? null;
                 if (stock.Date > periodStartTimeStamp)
                 {
                     var price = stock.Price ?? 0;
@@ -160,7 +173,7 @@ namespace ResearchWebApi.Services
                     {
 
                         var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
-                        lastTrans = new StockTransaction
+                        lastTrans = new StockTransactionSMA
                         {
                             TransTime = stock.Date,
                             TransPrice = price,
@@ -181,7 +194,7 @@ namespace ResearchWebApi.Services
                     else if (sellShortMa != null && sellLongMaVal != null && testToSell)
                     {
                         var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
-                        lastTrans = new StockTransaction
+                        lastTrans = new StockTransactionSMA
                         {
                             TransTime = stock.Date,
                             TransPrice = price,
@@ -200,12 +213,64 @@ namespace ResearchWebApi.Services
                 prevStock = stock;
             });
 
-            var currentStock = stockList.Last().Price ?? 0;
-            var periodEnd = stockList.Last().Date;
-            ProfitSettlement(currentStock, stockList, testCase, myTransactions, periodEnd);
-
             return myTransactions;
         }
 
+        public List<StockTransaction> GetMyTransactionsRSI(
+            List<StockTransaction> myTransactions,
+            List<StockModelDTO> stockList,
+            ITestCase testCase,
+            double periodStartTimeStamp,
+            StockTransaction lastTrans)
+        {
+            bool hasQty = false;
+            StockModelDTO prevStock = stockList.FirstOrDefault();
+            var testCaseRsi = (TestCaseRSI)testCase;
+            stockList.ForEach(stock =>
+            {
+                var rsi = stock.RsiList[testCaseRsi.MeasureRangeDay] ?? null;
+                var prevRsi = prevStock.MaList[testCaseRsi.MeasureRangeDay] ?? null;
+                if (stock.Date > periodStartTimeStamp)
+                {
+                    var price = stock.Price ?? 0;
+
+                    bool testToBuy = _transTimingService.TimeToBuy(rsi, prevRsi, testCaseRsi.OverSold, hasQty);
+                    bool testToSell = _transTimingService.TimeToSell(rsi, prevRsi, testCaseRsi.OverBought, hasQty);
+
+                    if (rsi != null && testToBuy)
+                    {
+                        var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
+                        lastTrans = new StockTransaction
+                        {
+                            TransTime = stock.Date,
+                            TransPrice = price,
+                            TransType = TransactionType.Buy,
+                            TransVolume = volume,
+                            Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                        };
+                        myTransactions.Add(lastTrans);
+                        hasQty = !hasQty;
+                    }
+                    // todo: 停損比例改為參數，從testcase丟進來
+                    // todo: 注意現在是用哪一種時機點
+                    else if (rsi != null && testToSell)
+                    {
+                        var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
+                        lastTrans = new StockTransaction
+                        {
+                            TransTime = stock.Date,
+                            TransPrice = price,
+                            TransType = TransactionType.Sell,
+                            TransVolume = volume,
+                            Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                        };
+                        myTransactions.Add(lastTrans);
+                        hasQty = !hasQty;
+                    }
+                }
+                prevStock = stock;
+            });
+            return myTransactions;
+        }
     }
 }

@@ -45,7 +45,6 @@
     <Folder Include="Services\" />
     <Folder Include="Models\" />
     <Folder Include="Interface\" />
-    <Folder Include="Enum\" />
     <Folder Include="Utils\" />
     <Folder Include="Repository\" />
     <Folder Include="Models\Results\" />

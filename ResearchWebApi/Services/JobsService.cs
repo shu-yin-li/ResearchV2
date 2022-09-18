@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -41,18 +42,97 @@ namespace ResearchWebApi.Services
             _fileHandler = fileHandler ?? throw new ArgumentNullException(nameof(fileHandler));
         }
 
-        public void BuyAndHold(string symbol, Period period)
+        public void BuyAndHold(string symbol, Period period, ResultTypeEnum resultType)
         {
-            var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(period.Start);
-            var stockList = _dataService.GetStockDataFromDb(symbol, period.Start, period.Start.AddDays(7));
-            var stockListEnd = _dataService.GetStockDataFromDb(symbol, period.End.AddDays(-7), period.End.AddDays(1));
+            List<SlidingWinPair> pairList = Utils.Get13TraditionalSlidingWindows();
+
+            var eachWindowResultParameterList = pairList.Select(pair =>
+            {
+                var windowPeriod = GetBuyAndHoldPeriod(period, pair, resultType);
+                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(windowPeriod.Start);
+                var stockListAll = _dataService.GetStockDataFromDb(symbol, windowPeriod.Start, windowPeriod.End.AddDays(1));
+                #region get first and last 7 stock model from all
+
+                var stockList = stockListAll.Take(7).ToList();
+                stockListAll.Reverse();
+                var stockListEnd = stockListAll.Take(7).Reverse();
+                stockList.AddRange(stockListEnd);
+
+                #endregion
+                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var transactions = _researchOperationService.GetBuyAndHoldTransactions(stockListDto, FUNDS);
+                var earns = _researchOperationService.GetEarningsResults(transactions);
+                var result = Math.Round(earns, 10);
+
+                var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    Result = result,
+                    SlidingWinPairName = slidingWinPairName,
+                    Period = windowPeriod,
+                    DayNumber = stockListAll.Count
+                };
+
+                return eachWindowResultParameter;
+            }).ToList();
+
+            #region get 10y B&H
+
+            var stockListAll = _dataService.GetStockDataFromDb(symbol, period.Start, period.End.AddDays(1));
+            #region get first and last 7 stock model from all
+
+            var stockList = stockListAll.Take(7).ToList();
+            stockListAll.Reverse();
+            var stockListEnd = stockListAll.Take(7).Reverse();
             stockList.AddRange(stockListEnd);
+
+            #endregion
             var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
             var transactions = _researchOperationService.GetBuyAndHoldTransactions(stockListDto, FUNDS);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
 
-            _outputResultService.UpdateBuyAndHoldResultInDb(FUNDS, symbol, stockListDto, periodStartTimeStamp, result);
+            var slidingWinPairName = "10Y";
+            var eachWindowResultParameter = new EachWindowResultParameter
+            {
+                StockList = stockListDto,
+                PeriodStartTimeStamp = Utils.ConvertToUnixTimestamp(period.Start),
+                Result = result,
+                SlidingWinPairName = slidingWinPairName,
+                Period = period,
+                DayNumber = 2517
+            };
+
+            eachWindowResultParameterList.Add(eachWindowResultParameter);
+
+            #endregion
+
+            _outputResultService.UpdateBuyAndHoldResultInDb(FUNDS, symbol, eachWindowResultParameterList);
+        }
+
+        private Period GetBuyAndHoldPeriod(Period period, SlidingWinPair pair, ResultTypeEnum resultType)
+        {
+            List<SlidingWindow> slidingWindows = pair.IsStar
+                            ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
+                            : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
+
+            if(resultType == ResultTypeEnum.Train)
+            {
+                return slidingWindows.Any() ? new Period
+                {
+                    Start = slidingWindows.First().TrainPeriod.Start,
+                    End = slidingWindows.Last().TrainPeriod.End
+                } : period;
+            } else
+            {
+                return slidingWindows.Any() ? new Period
+                {
+                    Start = slidingWindows.First().TestPeriod.Start,
+                    End = slidingWindows.Last().TestPeriod.End
+                } : period;
+            }
         }
 
         public void Test(SlidingWinPair pair, string algorithmName, string symbol, Period period)
@@ -75,7 +155,7 @@ namespace ResearchWebApi.Services
                 var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
                 if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
                 var transNodes = trainDetails.TransactionNodes.Split(",");
-                var testCase = new TestCase {
+                var testCase = new TestCaseSMA {
                     Funds = FUNDS,
                     Symbol = symbol,
                     BuyShortTermMa = int.Parse(transNodes[0]),
@@ -84,7 +164,7 @@ namespace ResearchWebApi.Services
                     SellLongTermMa = int.Parse(transNodes[3]),
                 };
 
-                var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp);
+                var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.SMA);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
                 var eachWindowResultParameter = new EachWindowResultParameter
@@ -147,7 +227,7 @@ namespace ResearchWebApi.Services
                 for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
                 {
                     StatusValue gBest;
-                    gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, null);
+                    gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, StrategyType.SMA, null);
                     CompareGBestByBits(ref bestGbest, ref gBestCount, gBest);
                 }
 
@@ -176,7 +256,7 @@ namespace ResearchWebApi.Services
                 {
                     eachWindowResultParameter.Result = bestGbest.Fitness;
                     trainDetailsParameter.BestTestCase =
-                        new TestCase
+                        new TestCaseSMA
                         {
                             Funds = FUNDS,
                             Symbol = symbol,
@@ -199,22 +279,47 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
-        public void TrainTraditionalWithRSI(SlidingWinPair SlidingWinPair, string symbol, Period period)
+        public void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period)
         {
-            throw new NotImplementedException();
+            List<int> range = new List<int> { 6, 9, 14 };
+            var testCases = new List<ITestCase>();
+            testCases.AddRange(range.Select((r) => {
+                return new TestCaseRSI
+                {
+                    Funds = FUNDS,
+                    Symbol = symbol,
+                    MeasureRangeDay = r,
+                    OverSold = 30,
+                    OverBought = 70
+                };
+            }));
+            testCases.AddRange(range.Select((r) => {
+                return new TestCaseRSI
+                {
+                    Funds = FUNDS,
+                    Symbol = symbol,
+                    MeasureRangeDay = r,
+                    OverSold = 20,
+                    OverBought = 80
+                };
+            }));
+            TraditionalTrain(pair, symbol, period, StrategyType.RSI,testCases);
         }
 
         public void TrainTraditionalWithSMA(SlidingWinPair pair, string symbol, Period period)
         {
-            var testCases = new List<TestCase>();
+            var testCases = new List<ITestCase>();
             List<int> shortMaList = new List<int> { 5, 10 };
             List<int> midMaList = new List<int> { 20, 60 };
             List<int> longMaList = new List<int> { 120, 240 };
-            shortMaList.ForEach((ma1) => {
-                midMaList.ForEach((ma2) => {
-                    testCases.Add(new TestCase
+            shortMaList.ForEach((ma1) =>
+            {
+                midMaList.ForEach((ma2) =>
+                {
+                    testCases.Add(new TestCaseSMA
                     {
                         Funds = FUNDS,
+                        Symbol = symbol,
                         BuyShortTermMa = ma1,
                         BuyLongTermMa = ma2,
                         SellShortTermMa = ma1,
@@ -222,11 +327,14 @@ namespace ResearchWebApi.Services
                     });
                 });
             });
-            midMaList.ForEach((ma1) => {
-                longMaList.ForEach((ma2) => {
-                    testCases.Add(new TestCase
+            midMaList.ForEach((ma1) =>
+            {
+                longMaList.ForEach((ma2) =>
+                {
+                    testCases.Add(new TestCaseSMA
                     {
                         Funds = FUNDS,
+                        Symbol = symbol,
                         BuyShortTermMa = ma1,
                         BuyLongTermMa = ma2,
                         SellShortTermMa = ma1,
@@ -234,10 +342,16 @@ namespace ResearchWebApi.Services
                     });
                 });
             });
+            TraditionalTrain(pair, symbol, period, StrategyType.SMA, testCases);
+        }
 
+        #region Private method
+
+        private void TraditionalTrain(SlidingWinPair pair, string symbol, Period period, StrategyType strategyType, List<ITestCase> testCases)
+        {
             List<SlidingWindow> slidingWindows = pair.IsStar
-                ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
-                : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
+                            ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
+                            : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
 
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
@@ -266,11 +380,13 @@ namespace ResearchWebApi.Services
                     PeriodStartTimeStamp = periodStartTimeStamp
                 };
 
-                testCases.ForEach(testCase => {
-                    var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp);
+                testCases.ForEach(testCase =>
+                {
+                    var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategyType);
                     var earns = _researchOperationService.GetEarningsResults(transactions);
                     var result = Math.Round(earns, 10);
-                    if (result != 0 && result > eachWindowResultParameter.Result) {
+                    if (result != 0 && result > eachWindowResultParameter.Result)
+                    {
                         trainDetailsParameter.BestTestCase = testCase;
                         eachWindowResultParameter.Result = result;
                     }
@@ -283,8 +399,6 @@ namespace ResearchWebApi.Services
 
             _outputResultService.UpdateTraditionalResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
-
-        #region Private method
 
         private static void CompareGBestByBits(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest)
         {

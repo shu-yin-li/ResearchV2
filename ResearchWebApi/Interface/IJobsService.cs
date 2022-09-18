@@ -1,4 +1,5 @@
 ﻿using System;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Interface
@@ -11,6 +12,6 @@ namespace ResearchWebApi.Interface
         void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period);
         //void TrainTraditionalWithHybrid(SlidingWinPair SlidingWinPair, string symbol, Period period);
         void Test(SlidingWinPair pair, string algorithmName, string symbol, Period period);
-        void BuyAndHold(string symbol, Period period);
+        void BuyAndHold(string symbol, Period period, ResultTypeEnum resultType);
     }
 }

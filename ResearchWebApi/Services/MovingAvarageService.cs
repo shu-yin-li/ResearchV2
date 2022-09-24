@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -26,7 +27,6 @@ namespace ResearchWebApi.Services
             var index = 0;
             double? prePrice = 0;
             var maProperty = typeof(StockModel).GetProperty($"Ma{avgDay}");
-
             sortedStock.ForEach(stock =>
             {
                 double? sumPrice = 0;
@@ -48,6 +48,32 @@ namespace ResearchWebApi.Services
                 index++;
             });
             return sortedStock;
+        }
+
+        public void CalculateMovingAvarage(ref List<StockModel> stockList)
+        {
+            if (stockList is null)
+            {
+                throw new ArgumentNullException(nameof(stockList));
+            }
+
+            var sortedStock = stockList.OrderByDescending(s => s.Date).ToList();
+
+            var maProperties = typeof(MaModel).GetProperties().ToList();
+            var index = 0;
+            sortedStock.ForEach(stock => {
+                var maModel = new MaModel();
+                maProperties.ForEach(prop =>
+                {
+                    var avgDay = int.Parse(prop.Name.Replace("Ma", ""));
+                    var currentPriceList = sortedStock.Select(s => s.Price).Skip(index).Take(avgDay);
+                    var sumPrice = currentPriceList.Count() < avgDay ? 0 : currentPriceList.Sum();
+                    var ma = sumPrice == 0 ? null : (double?)Math.Round(((decimal)sumPrice) / avgDay, 10, MidpointRounding.AwayFromZero);
+                    prop.SetValue(maModel, ma);
+                });
+                stock.MaString = JsonConvert.SerializeObject(maModel);
+                index++;
+            });
         }
     }
 }

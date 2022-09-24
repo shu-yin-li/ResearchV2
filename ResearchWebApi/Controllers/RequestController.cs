@@ -15,7 +15,7 @@ namespace ResearchWebApi.Controllers
     public class RequestController : Controller
     {
 
-        private IResearchOperationService _researchOperationService;
+        private IMovingAvarageService _movingAvarageService;
         private IDataService _dataService;
         private IMapper _mapper;
         private IStockModelDataProvider _stockModelDataProvider;
@@ -26,13 +26,13 @@ namespace ResearchWebApi.Controllers
         };
         public RequestController(
             IJobsService jobsService,
-            IResearchOperationService researchOperationService,
+            IMovingAvarageService movingAvarageService,
             IDataService dataService,
             IStockModelDataProvider stockModelDataProvider,
             IMapper mapper)
         {
             _jobsService = jobsService ?? throw new ArgumentNullException(nameof(jobsService));
-            _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
+            _movingAvarageService = movingAvarageService ?? throw new ArgumentNullException(nameof(movingAvarageService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
             _stockModelDataProvider = stockModelDataProvider ?? throw new ArgumentNullException(nameof(stockModelDataProvider));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -118,17 +118,9 @@ namespace ResearchWebApi.Controllers
             if (stockList.Any()) return;
 
             var periodEnd = new DateTime(2022, 5, 31, 0, 0, 0);
-            List<StockModel> maStockList;
-
-            maStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2010, 1, 1, 0, 0, 0), periodEnd);
-            _researchOperationService.CalculateAllMa(ref maStockList);
-            for (var year = 2010; year <= 2022; year++)
-            {
-                var end = new DateTime(year, 12, 31, 0, 0, 0);
-                if (year == 2022) end = periodEnd.AddDays(1);
-                maStockList.FindAll(s => s.Date > Utils.ConvertToUnixTimestamp(new DateTime(year, 1, 1, 0, 0, 0)) && s.Date < Utils.ConvertToUnixTimestamp(end));
-                _stockModelDataProvider.AddBatch(maStockList);
-            }
+            List<StockModel> maStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2010, 1, 1, 0, 0, 0), periodEnd);
+            _movingAvarageService.CalculateMovingAvarage(ref maStockList);
+            _stockModelDataProvider.AddBatch(maStockList);
         }
     }
 }

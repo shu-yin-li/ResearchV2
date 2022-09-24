@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
+using Newtonsoft.Json;
 
 namespace ResearchWebApi.Models
 {
@@ -29,12 +30,14 @@ namespace ResearchWebApi.Models
         public Dictionary<int, double?> Resolve(StockModel source, StockModelDTO destination, Dictionary<int, double?> member, ResolutionContext context)
         {
             var maList = new Dictionary<int, double?>();
-            var properties = typeof(StockModel).GetProperties().ToList().FindAll(prop => prop.Name.Contains("Ma"));
+            MaModel maObject = JsonConvert.DeserializeObject<MaModel>(source.MaString);
 
-            foreach (var prop in properties) {
-                var key = Convert.ToInt32(prop.Name.Replace("Ma", ""));
-                var value = Convert.ToDouble(prop.GetValue(source));
-                maList.Add(key, value == 0 ? (double?)null : (double?)value);
+            var properties = typeof(MaModel).GetProperties();
+            foreach (var prop in properties)
+            {
+                var key = int.Parse(prop.Name.Replace("Ma", ""));
+                var value = (double?)prop.GetValue(maObject);
+                maList.Add(key, value);
             }
 
             return maList;

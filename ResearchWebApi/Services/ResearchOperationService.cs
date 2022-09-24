@@ -24,14 +24,6 @@ namespace ResearchWebApi.Services
             _transTimingService = transTimingService ?? throw new ArgumentNullException(nameof(transTimingService));
         }
 
-        public void CalculateAllMa(ref List<StockModel> stockList)
-        {
-            for (var i = 1; i <= 256; i++)
-            {
-                stockList = _movingAvgService.CalculateMovingAvarage(stockList, i);
-            }
-        }
-
         public List<StockTransaction> ProfitSettlement(double currentStock, List<StockModelDTO> stockList, ITestCase testCase, List<StockTransaction> myTrans, double periodEnd)
         {
             var testCaseSma = (TestCaseSMA)testCase;

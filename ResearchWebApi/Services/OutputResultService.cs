@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
@@ -164,7 +165,8 @@ namespace ResearchWebApi.Services
                     ExperimentNumberOfBest = trainDetailsParameter.ExperimentNumberOfBest,
                     GenerationOfBest = trainDetailsParameter.GenerationOfBest,
                     BestCount = trainDetailsParameter.BestCount,
-                    ExecuteDate = commonResult.ExecuteDate
+                    ExecuteDate = commonResult.ExecuteDate,
+                    BestSmaList = JsonConvert.SerializeObject(trainDetailsParameter.BestGbestList)
                 };
             }).ToList();
 

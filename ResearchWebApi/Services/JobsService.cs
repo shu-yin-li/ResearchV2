@@ -219,6 +219,7 @@ namespace ResearchWebApi.Services
                 // +1 是為了時差 取正確的最後一天
                 var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var bestGbestList = new List<TestCaseSMA>();
                 var bestGbest = new StatusValue();
                 int gBestCount = 0;
                 //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
@@ -230,7 +231,7 @@ namespace ResearchWebApi.Services
                 {
                     StatusValue gBest;
                     gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
-                    CompareGBestByBits(ref bestGbest, ref gBestCount, gBest);
+                    CompareGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
                 }
 
                 #endregion
@@ -272,6 +273,7 @@ namespace ResearchWebApi.Services
                     trainDetailsParameter.ExperimentNumberOfBest = bestGbest.Experiment;
                     trainDetailsParameter.GenerationOfBest = bestGbest.Generation;
                     trainDetailsParameter.BestCount = gBestCount;
+                    trainDetailsParameter.BestGbestList = bestGbestList;
                 }
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);
@@ -406,7 +408,7 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateTraditionalResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
-        private static void CompareGBestByBits(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest)
+        private static void CompareGBestByBits(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest, ref List<TestCaseSMA> bestGbestList)
         {
             if (bestGbest.Fitness < gBest.Fitness)
             {
@@ -421,9 +423,20 @@ namespace ResearchWebApi.Services
                 Utils.GetMaNumber(bestGbest.SellMa2) == Utils.GetMaNumber(gBest.SellMa2) &&
                 bestGbest.Fitness == gBest.Fitness
                 ) gBestCount++;
+
+            if (bestGbest.Fitness == gBest.Fitness)
+            {
+                bestGbestList.Add(new TestCaseSMA
+                {
+                    BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
+                    BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                    SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
+                    SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2)
+                });
+            }
         }
 
-        private static void CompareGBestByFitness(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest)
+        private static void CompareGBestByFitness(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest, ref List<StatusValue> bestGbestList)
         {
             if (bestGbest.Fitness < gBest.Fitness)
             {
@@ -431,7 +444,11 @@ namespace ResearchWebApi.Services
                 gBestCount = 0;
             }
 
-            if (bestGbest.Fitness == gBest.Fitness) gBestCount++;
+            if (bestGbest.Fitness == gBest.Fitness)
+            {
+                gBestCount++;
+                bestGbestList.Add(bestGbest);
+            }
         }
 
         #endregion

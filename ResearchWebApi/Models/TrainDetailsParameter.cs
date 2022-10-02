@@ -1,4 +1,5 @@
-﻿using ResearchWebApi.Enums;
+﻿using System.Collections.Generic;
+using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 
 namespace ResearchWebApi.Models
@@ -16,6 +17,7 @@ namespace ResearchWebApi.Models
         public double BestCount { get; set; }
         public double PeriodStartTimeStamp { get; set; }
         public StrategyType Strategy { get; set; }
+        public List<TestCaseSMA> BestGbestList { get; set; }
 
         public TrainDetailsParameter()
         {

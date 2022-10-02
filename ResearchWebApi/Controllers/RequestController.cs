@@ -112,6 +112,27 @@ namespace ResearchWebApi.Controllers
             return Ok();
         }
 
+        [HttpGet("TestRSI")]
+        public IActionResult TestRSI()
+        {
+            var indicatorStockList = new List<StockModel> {
+                new StockModel { Price = 10 },
+                new StockModel { Price = 12 },
+                new StockModel { Price = 15 },
+                new StockModel { Price = 20 },
+                new StockModel { Price = 25 },
+                new StockModel { Price = 23 },
+                new StockModel { Price = 17 },
+                new StockModel { Price = 12 },
+                new StockModel { Price = 16 },
+                new StockModel { Price = 9 },
+                new StockModel { Price = 8 },
+            };
+
+            _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
+            return Ok();
+        }
+
         private void PrepareSource(string symbol)
         {
             var stockList = _dataService.GetStockDataFromDb(symbol, new DateTime(2021, 12, 20, 0, 0, 0), new DateTime(2021, 12, 31, 0, 0, 0));

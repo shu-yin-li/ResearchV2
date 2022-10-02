@@ -135,7 +135,7 @@ namespace ResearchWebApi.Services
             }
         }
 
-        public void Test(SlidingWinPair pair, string algorithmName, string symbol, Period period)
+        public void Test(SlidingWinPair pair, string algorithmName, string symbol, Period period, StrategyType strategy)
         {
             List<SlidingWindow> slidingWindows = pair.IsStar
                 ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
@@ -151,7 +151,7 @@ namespace ResearchWebApi.Services
                 var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start, window.TestPeriod.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
 
-                var trainId = $"{algorithmName}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
+                var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
                 var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
                 if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
                 var transNodes = trainDetails.TransactionNodes.Split(",");
@@ -197,6 +197,8 @@ namespace ResearchWebApi.Services
                 cRandom = _fileHandler.Readcsv("Data/srand343");
             }
 
+            var strategy = StrategyType.SMA;
+
             List<SlidingWindow> slidingWindows = pair.IsStar
                 ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
                 : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
@@ -227,7 +229,7 @@ namespace ResearchWebApi.Services
                 for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
                 {
                     StatusValue gBest;
-                    gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, StrategyType.SMA, null);
+                    gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
                     CompareGBestByBits(ref bestGbest, ref gBestCount, gBest);
                 }
 
@@ -239,7 +241,8 @@ namespace ResearchWebApi.Services
                 {
                     StockList = stockListDto,
                     PeriodStartTimeStamp = periodStartTimeStamp,
-                    SlidingWindow = window
+                    SlidingWindow = window,
+                    Strategy = strategy
                 };
 
                 var trainDetailsParameter = new TrainDetailsParameter
@@ -249,7 +252,8 @@ namespace ResearchWebApi.Services
                     ExperimentNumber = algorithmConst.EXPERIMENT_NUMBER,
                     Generations = algorithmConst.GENERATIONS,
                     SearchNodeNumber = algorithmConst.SEARCH_NODE_NUMBER,
-                    PeriodStartTimeStamp = periodStartTimeStamp
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    Strategy = strategy
                 };
 
                 if (bestGbest.BuyMa1.Count > 0)
@@ -281,7 +285,7 @@ namespace ResearchWebApi.Services
 
         public void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period)
         {
-            List<int> range = new List<int> { 6, 9, 14 };
+            List<int> range = new List<int> { 5, 6, 14 };
             var testCases = new List<ITestCase>();
             testCases.AddRange(range.Select((r) => {
                 return new TestCaseRSI
@@ -388,7 +392,9 @@ namespace ResearchWebApi.Services
                     if (result != 0 && result > eachWindowResultParameter.Result)
                     {
                         trainDetailsParameter.BestTestCase = testCase;
+                        trainDetailsParameter.Strategy = strategyType;
                         eachWindowResultParameter.Result = result;
+                        eachWindowResultParameter.Strategy = strategyType;
                     }
                 });
 

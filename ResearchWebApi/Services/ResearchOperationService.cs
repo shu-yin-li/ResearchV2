@@ -10,13 +10,13 @@ namespace ResearchWebApi.Services
     public class ResearchOperationService: IResearchOperationService
     {
         private ICalculateVolumeService _calculateVolumeService;
-        private IMovingAvarageService _movingAvgService;
+        private IIndicatorCalulationService _movingAvgService;
         private ITransTimingService _transTimingService;
 
 
         public ResearchOperationService(
             ICalculateVolumeService calculateVolumeService,
-            IMovingAvarageService movingAvgService,
+            IIndicatorCalulationService movingAvgService,
             ITransTimingService transTimingService)
         {
             _movingAvgService = movingAvgService ?? throw new ArgumentNullException(nameof(movingAvgService));
@@ -26,7 +26,6 @@ namespace ResearchWebApi.Services
 
         public List<StockTransaction> ProfitSettlement(double currentStock, List<StockModelDTO> stockList, ITestCase testCase, List<StockTransaction> myTrans, double periodEnd)
         {
-            var testCaseSma = (TestCaseSMA)testCase;
             var hasQty = myTrans.Last().TransType == TransactionType.Buy;
             if (hasQty && myTrans.Last().TransTime == stockList.Last().Date) {
                 myTrans.RemoveAt(myTrans.Count - 1);
@@ -36,7 +35,7 @@ namespace ResearchWebApi.Services
                 //var timeString = Utils.UnixTimeStampToDateTime(periodEnd);
                 var price = currentStock;
                 var sellMaValList = stockList.TakeLast(2);
-                myTrans.Add(new StockTransactionSMA
+                myTrans.Add(new StockTransaction
                 {
                     TransTime = periodEnd,
                     //TransTimeString = $"{timeString.Year}-{timeString.Month}-{timeString.Day}",
@@ -44,10 +43,11 @@ namespace ResearchWebApi.Services
                     TransType = TransactionType.Sell,
                     TransVolume = myTrans.Last().TransVolume,
                     Balance = myTrans.Last().Balance + Math.Round(currentStock * myTrans.Last().TransVolume, 10, MidpointRounding.ToZero),
-                    SellShortMaPrice = sellMaValList.LastOrDefault().MaList[testCaseSma.SellShortTermMa] ?? 0,
-                    SellLongMaPrice = sellMaValList.LastOrDefault().MaList[testCaseSma.SellLongTermMa] ?? 0,
-                    SellShortMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCaseSma.SellShortTermMa] ?? 0,
-                    SellLongMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCaseSma.SellLongTermMa] ?? 0,
+                    // for debugging
+                    //SellShortMaPrice = sellMaValList.LastOrDefault().MaList[testCaseSma.SellShortTermMa] ?? 0,
+                    //SellLongMaPrice = sellMaValList.LastOrDefault().MaList[testCaseSma.SellLongTermMa] ?? 0,
+                    //SellShortMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCaseSma.SellShortTermMa] ?? 0,
+                    //SellLongMaPrice1DayBefore = sellMaValList.FirstOrDefault().MaList[testCaseSma.SellLongTermMa] ?? 0,
                 });
             }
 
@@ -221,7 +221,7 @@ namespace ResearchWebApi.Services
             stockList.ForEach(stock =>
             {
                 var rsi = stock.RsiList[testCaseRsi.MeasureRangeDay] ?? null;
-                var prevRsi = prevStock.MaList[testCaseRsi.MeasureRangeDay] ?? null;
+                var prevRsi = prevStock.RsiList[testCaseRsi.MeasureRangeDay] ?? null;
                 if (stock.Date > periodStartTimeStamp)
                 {
                     var price = stock.Price ?? 0;

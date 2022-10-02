@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using AutoMapper;
 using Newtonsoft.Json;
 
@@ -21,7 +19,7 @@ namespace ResearchWebApi.Models
                 .ForMember(d => d.Date, opt => opt.MapFrom(s => s.Date))
                 .ForMember(d => d.Price, opt => opt.MapFrom(s => s.Price))
                 .ForMember(d => d.MaList, opt => opt.MapFrom(new MaListResolver()))
-                .ForMember(d => d.RsiList, opt => opt.Ignore());
+                .ForMember(d => d.RsiList, opt => opt.MapFrom(new RsiListResolver()));
         }
     }
 
@@ -41,6 +39,25 @@ namespace ResearchWebApi.Models
             }
 
             return maList;
+        }
+    }
+
+    public class RsiListResolver : IValueResolver<StockModel, StockModelDTO, Dictionary<int, double?>>
+    {
+        public Dictionary<int, double?> Resolve(StockModel source, StockModelDTO destination, Dictionary<int, double?> member, ResolutionContext context)
+        {
+            var rsiList = new Dictionary<int, double?>();
+            RsiModel maObject = JsonConvert.DeserializeObject<RsiModel>(source.RsiString);
+
+            var properties = typeof(RsiModel).GetProperties();
+            foreach (var prop in properties)
+            {
+                var key = int.Parse(prop.Name.Replace("Rsi", ""));
+                var value = (double?)prop.GetValue(maObject);
+                rsiList.Add(key, value);
+            }
+
+            return rsiList;
         }
     }
 }

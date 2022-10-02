@@ -40,7 +40,7 @@ namespace ResearchWebApi.Services
                 {
                     CommonResultId = commonResultId,
                     Mode = ResultTypeEnum.BuyAndHold,
-                    TrainId = $"{algorithmName}_{eachWindowResultParameter.SlidingWinPairName}",
+                    TrainId = $"{algorithmName}_{nameof(ResultTypeEnum.BuyAndHold)}_{eachWindowResultParameter.SlidingWinPairName}",
                     FromDateToDate = $"{eachWindowResultParameter.Period.Start} - {eachWindowResultParameter.Period.End}",
                     FinalCapital = eachWindowResultParameter.Result,
                     FinalEarn = eachWindowResultParameter.Result - funds,
@@ -68,7 +68,8 @@ namespace ResearchWebApi.Services
                     {
                         CommonResultId = commonResultId,
                         Mode = ResultTypeEnum.Traditional,
-                        TrainId = $"{algorithmName}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
+                        TrainId = $"{algorithmName}_{eachWindowResultParameter.Strategy}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
+                        Strategy = eachWindowResultParameter.Strategy,
                         FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TrainPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TrainPeriod.End}",
                         DayNumber = dayNumber,
                         FinalCapital = eachWindowResultParameter.Result,
@@ -81,14 +82,24 @@ namespace ResearchWebApi.Services
             var trainDetailsList = trainDetailsParameterList.Select(trainDetailsParameter => {
                 var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
                 var algorithmName = "Traditional";
-                var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
+                var transactionNodes = string.Empty;
+                if (trainDetailsParameter.Strategy == StrategyType.SMA)
+                {
+                    var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}";
+                }
+                else
+                {
+                    var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
+                }
                 return new TrainDetails
                 {
                     CommonResultId = commonResultId,
                     SlidingWinPairName = slidingWinPairName,
                     AlgorithmName = algorithmName,
-                    TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
-                    TransactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}",
+                    TrainId = $"{algorithmName}_{trainDetailsParameter.Strategy}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
+                    TransactionNodes = transactionNodes,
                 };
             }).ToList();
 
@@ -112,7 +123,7 @@ namespace ResearchWebApi.Services
                     {
                         CommonResultId = commonResultId,
                         Mode = ResultTypeEnum.Train,
-                        TrainId = $"{algorithmName}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
+                        TrainId = $"{algorithmName}_{eachWindowResultParameter.Strategy}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
                         FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TrainPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TrainPeriod.End}",
                         DayNumber = dayNumber,
                         FinalCapital = eachWindowResultParameter.Result,
@@ -127,7 +138,17 @@ namespace ResearchWebApi.Services
             var trainDetailsList = trainDetailsParameterList.Select(trainDetailsParameter => {
                 var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
                 var algorithmName = "GNQTS";
-                var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
+                var transactionNodes = string.Empty;
+                if (trainDetailsParameter.Strategy == StrategyType.SMA)
+                {
+                    var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}";
+                }
+                else
+                {
+                    var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
+                }
                 return new TrainDetails
                 {
                     CommonResultId = commonResultId,
@@ -138,8 +159,8 @@ namespace ResearchWebApi.Services
                     ExperimentNumber = trainDetailsParameter.ExperimentNumber,
                     Generations = trainDetailsParameter.Generations,
                     SearchNodeNumber = trainDetailsParameter.SearchNodeNumber,
-                    TrainId = $"{algorithmName}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
-                    TransactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}",
+                    TrainId = $"{algorithmName}_{trainDetailsParameter.Strategy}_{slidingWinPairName}_{trainDetailsParameter.PeriodStartTimeStamp}",
+                    TransactionNodes = transactionNodes,
                     ExperimentNumberOfBest = trainDetailsParameter.ExperimentNumberOfBest,
                     GenerationOfBest = trainDetailsParameter.GenerationOfBest,
                     BestCount = trainDetailsParameter.BestCount,

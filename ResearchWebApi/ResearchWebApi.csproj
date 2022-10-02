@@ -27,6 +27,7 @@
     <None Remove="AutoMapper.Extensions.Microsoft.DependencyInjection" />
     <None Remove="CsvHelper" />
     <None Remove="Hangfire.Dashboard.Authorization" />
+    <None Remove="Helper\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire" Version="1.7.30" />
@@ -48,5 +49,6 @@
     <Folder Include="Utils\" />
     <Folder Include="Repository\" />
     <Folder Include="Models\Results\" />
+    <Folder Include="Helper\" />
   </ItemGroup>
 </Project>

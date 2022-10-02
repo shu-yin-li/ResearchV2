@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using ResearchWebApi.Enums;
 
 namespace ResearchWebApi.Models
 {
@@ -12,6 +13,7 @@ namespace ResearchWebApi.Models
         public string SlidingWinPairName { get; set; }
         public Period Period { get; set; }
         public int DayNumber { get; set; }
+        public StrategyType Strategy { get; set; }
 
         public EachWindowResultParameter()
         {

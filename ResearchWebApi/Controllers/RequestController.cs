@@ -15,7 +15,7 @@ namespace ResearchWebApi.Controllers
     public class RequestController : Controller
     {
 
-        private IMovingAvarageService _movingAvarageService;
+        private IIndicatorCalulationService _indictorCalculationService;
         private IDataService _dataService;
         private IMapper _mapper;
         private IStockModelDataProvider _stockModelDataProvider;
@@ -26,13 +26,13 @@ namespace ResearchWebApi.Controllers
         };
         public RequestController(
             IJobsService jobsService,
-            IMovingAvarageService movingAvarageService,
+            IIndicatorCalulationService movingAvarageService,
             IDataService dataService,
             IStockModelDataProvider stockModelDataProvider,
             IMapper mapper)
         {
             _jobsService = jobsService ?? throw new ArgumentNullException(nameof(jobsService));
-            _movingAvarageService = movingAvarageService ?? throw new ArgumentNullException(nameof(movingAvarageService));
+            _indictorCalculationService = movingAvarageService ?? throw new ArgumentNullException(nameof(movingAvarageService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
             _stockModelDataProvider = stockModelDataProvider ?? throw new ArgumentNullException(nameof(stockModelDataProvider));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -55,7 +55,7 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Buy == StrategyType.RSI
                 && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
             {
-                BackgroundJob.Enqueue(() => Console.WriteLine("Traditional RSI"));
+                BackgroundJob.Enqueue(() => _jobsService.TrainTraditionalWithRSI(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
                 return Ok();
             }
 
@@ -90,14 +90,14 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
                 BackgroundJob.Enqueue(()
-                    => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period));
+                    => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
                 return Ok();
             }
 
             if (trainParameter.TransactionTiming.Buy == StrategyType.RSI
                 && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
             {
-                BackgroundJob.Enqueue(() => Console.WriteLine("Traditional RSI"));
+                BackgroundJob.Enqueue(() => Console.WriteLine("Test RSI"));
                 return Ok();
             }
 
@@ -118,9 +118,10 @@ namespace ResearchWebApi.Controllers
             if (stockList.Any()) return;
 
             var periodEnd = new DateTime(2022, 5, 31, 0, 0, 0);
-            List<StockModel> maStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2010, 1, 1, 0, 0, 0), periodEnd);
-            _movingAvarageService.CalculateMovingAvarage(ref maStockList);
-            _stockModelDataProvider.AddBatch(maStockList);
+            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2010, 1, 1, 0, 0, 0), periodEnd);
+            _indictorCalculationService.CalculateMovingAvarage(ref indicatorStockList);
+            _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
+            _stockModelDataProvider.AddBatch(indicatorStockList);
         }
     }
 }

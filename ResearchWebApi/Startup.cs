@@ -36,12 +36,12 @@ namespace ResearchWebApi
             services.AddScoped<IResearchOperationService, ResearchOperationService>();
             services.AddScoped<ICalculateVolumeService, CalculateVolumeService>();
             services.AddScoped<IDataService, DataService>();
-            services.AddScoped<IMovingAvarageService, MovingAvarageService>();
+            services.AddScoped<IIndicatorCalulationService, IndicatorCalculationService>();
             services.AddScoped<IOutputResultService, OutputResultService>();
             services.AddScoped<IJobsService, JobsService>();
             services.AddScoped<ISlidingWindowService, SlidingWindowService>();
             services.AddScoped<ITransTimingService, TransTimingService>();
-            services.AddScoped<IGNQTSAlgorithmService, GNQTSAlgorithmService>();
+            services.AddScoped<IGNQTSAlgorithmService, SMAGNQTSAlgorithmService>();
             services.AddScoped<IFileHandler, FileHandler>();
             
             // DB

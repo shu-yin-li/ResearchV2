@@ -8,7 +8,7 @@ using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Services
 {
-    public class GNQTSAlgorithmService: IGNQTSAlgorithmService
+    public class SMAGNQTSAlgorithmService: IGNQTSAlgorithmService
     {
         private IResearchOperationService _researchOperationService;
         // GNQTS paremeters
@@ -19,7 +19,7 @@ namespace ResearchWebApi.Services
         const double RANDOM_MAX = 32767.0;
         const int EXPERIMENT_NUMBER = 50;
 
-        public GNQTSAlgorithmService(IResearchOperationService researchOperationService)
+        public SMAGNQTSAlgorithmService(IResearchOperationService researchOperationService)
         {
             _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
         }

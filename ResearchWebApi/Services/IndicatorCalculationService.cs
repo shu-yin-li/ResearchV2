@@ -84,10 +84,18 @@ namespace ResearchWebApi.Services
             }
 
             var rsiModelList = new List<RsiModel>();
-            var sortedStock = stockList.OrderByDescending(s => s.Date).ToList();
+            var sortedStock = stockList.OrderBy(s => s.Date).ToList();
             var rsiProperties = typeof(RsiModel).GetProperties().ToList();
 
             var (gainList, lossList) = CalculateGainLossList(sortedStock);
+            var avgGain1 = GetAvg1(gainList);
+            var avgLoss1 = GetAvg1(lossList);
+
+            var currentAvgGainList = new List<decimal>();
+            var currentAvgLossList = new List<decimal>();
+            var prevAvgGainList = new List<decimal>();
+            var prevAvgLossList = new List<decimal>();
+
             sortedStock = sortedStock.Select((stock, index) => {
                 if (index == 0) return stock;
                 
@@ -95,46 +103,45 @@ namespace ResearchWebApi.Services
                 rsiProperties.ForEach(prop =>
                 {
                     var measureRange = int.Parse(prop.Name.Replace("Rsi", ""));
-                    var prevAvg = 0.0;
-                    var avgGain = gainList
-                                    .Select((gain, i) => {
-                                        if (i == 0 || i == 1)
-                                        {
-                                            prevAvg = (double)gain;
-                                            return gain;
-                                        }
+                    if (index < measureRange) return;
+                    if (prevAvgGainList.Count() < measureRange)
+                    {
+                        // Summarize all previous change and cal RSI
+                        var gain = avgGain1.ElementAt(index);
+                        var loss = avgLoss1.ElementAt(index);
 
-                                        var result = (decimal)(prevAvg * (measureRange - 1) + (double)gain) * 1m / measureRange;
-                                        prevAvg = (double)result;
-                                        return (double)result;
-                                    })
-                                    .Skip(index)
-                                    .Take(1)
-                                    .FirstOrDefault();
-                    prevAvg = 0.0;
-                    var avgLoss = lossList
-                                    .Select((loss, i) => {
-                                        if (i == 0 || i == 1)
-                                        {
-                                            prevAvg = (double)loss;
-                                            return loss;
-                                        }
+                        currentAvgGainList.Add(gain / measureRange);
+                        currentAvgLossList.Add(loss / measureRange);
 
-                                        var result = (decimal)(prevAvg * (measureRange - 1) + (double)loss) * 1m / measureRange;
-                                        prevAvg = (double)result;
-                                        return (double)result;
-                                    }).Skip(index)
-                                    .Take(1)
-                                    .FirstOrDefault();
+                        prop.SetValue(rsiModel, (gain + loss) is not 0 ? 100 * gain / (gain + loss) : 100);
+                    }
+                    else
+                    {
+                        decimal prevAvgGain = prevAvgGainList.ElementAt(measureRange - 1);
+                        decimal prevAvgLoss = prevAvgLossList.ElementAt(measureRange - 1);
+                        var gain = gainList.ElementAt(index);
+                        var avgGain = (prevAvgGain * (measureRange - 1) + gain) * 1m / measureRange;
+                        currentAvgGainList.Add(avgGain);
 
-                    prop.SetValue(rsiModel, 100 - (100 / (1 + avgGain/avgLoss)));
+                        var loss = lossList.ElementAt(index);
+                        var avgLoss = (prevAvgLoss * (measureRange - 1) + loss) * 1m / measureRange;
+                        currentAvgLossList.Add(avgLoss);
+
+                        prop.SetValue(rsiModel, (avgGain + avgLoss) is not 0 ? 100 * avgGain / (avgGain + avgLoss) : 100);
+                    }
                 });
                 stock.RsiString = JsonConvert.SerializeObject(rsiModel);
+                prevAvgGainList.Clear();
+                prevAvgGainList.AddRange(currentAvgGainList);
+                prevAvgLossList.Clear();
+                prevAvgLossList.AddRange(currentAvgLossList);
+                currentAvgGainList.Clear();
+                currentAvgLossList.Clear();
                 return stock;
             }).ToList();
         }
 
-        private static (List<double?>, List<double?>) CalculateGainLossList(List<StockModel> sortedStock)
+        private static (List<decimal>, List<decimal>) CalculateGainLossList(List<StockModel> sortedStock)
         {
             var currentPriceList = sortedStock.Select(s => s.Price);
             var prevPriceList = new List<double?> { null };
@@ -144,7 +151,7 @@ namespace ResearchWebApi.Services
             {
                 var prevPrice = prevPriceList.Skip(i).Take(1).FirstOrDefault();
                 if (price is not null && prevPrice is not null && price >= prevPrice)
-                    return price - prevPrice;
+                    return (decimal)(price - prevPrice);
                 else
                     return 0;
             })
@@ -153,7 +160,7 @@ namespace ResearchWebApi.Services
             {
                 var prevPrice = prevPriceList.Skip(i).Take(1).FirstOrDefault();
                 if (price is not null && prevPrice is not null && price < prevPrice)
-                    return prevPrice - price;
+                    return (decimal)(prevPrice - price);
                 else
                     return 0;
             })
@@ -162,17 +169,11 @@ namespace ResearchWebApi.Services
             return (gainList, lossList);
         }
 
-        private static double? GetAvg(double diff, int index, int measureRange, ref double prevAvg)
+        private static List<decimal> GetAvg1(List<decimal> list)
         {
-            if (index == 0 || index == 1)
-            {
-                prevAvg = diff;
-                return diff;
-            }
-
-            var result = (prevAvg * (measureRange - 1) + diff)/measureRange;
-            prevAvg = result;
-            return result;
+            decimal sum = 0;
+            var result = list.Select(value => sum += value);
+            return result.ToList();
         }
     }
 }

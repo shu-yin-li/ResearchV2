@@ -115,21 +115,22 @@ namespace ResearchWebApi.Controllers
         [HttpGet("TestRSI")]
         public IActionResult TestRSI()
         {
-            var indicatorStockList = new List<StockModel> {
-                new StockModel { Price = 10 },
-                new StockModel { Price = 12 },
-                new StockModel { Price = 15 },
-                new StockModel { Price = 20 },
-                new StockModel { Price = 25 },
-                new StockModel { Price = 23 },
-                new StockModel { Price = 17 },
-                new StockModel { Price = 12 },
-                new StockModel { Price = 16 },
-                new StockModel { Price = 9 },
-                new StockModel { Price = 8 },
-            };
+            PrepareSource("AAPL");
+            //var indicatorStockList = new List<StockModel> {
+            //    new StockModel { Price = 10 },
+            //    new StockModel { Price = 12 },
+            //    new StockModel { Price = 15 },
+            //    new StockModel { Price = 20 },
+            //    new StockModel { Price = 25 },
+            //    new StockModel { Price = 23 },
+            //    new StockModel { Price = 17 },
+            //    new StockModel { Price = 12 },
+            //    new StockModel { Price = 16 },
+            //    new StockModel { Price = 9 },
+            //    new StockModel { Price = 8 },
+            //};
 
-            _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
+            //_indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
             return Ok();
         }
 
@@ -139,9 +140,10 @@ namespace ResearchWebApi.Controllers
             if (stockList.Any()) return;
 
             var periodEnd = new DateTime(2022, 5, 31, 0, 0, 0);
-            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2010, 1, 1, 0, 0, 0), periodEnd);
+            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(1980, 12, 12, 0, 0, 0), periodEnd);
             _indictorCalculationService.CalculateMovingAvarage(ref indicatorStockList);
             _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
+
             _stockModelDataProvider.AddBatch(indicatorStockList);
         }
     }

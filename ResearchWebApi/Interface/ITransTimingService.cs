@@ -8,10 +8,10 @@ namespace ResearchWebApi.Interface
         bool TrueCheckGoldCross(bool check, double? shortMaVal, double? longMaVal);
         bool TimeToBuy(double? shortMaVal, double? longMaVal, double? prevShortMaVal, double? prevLongMaVal, bool hasQty);
         bool TimeToBuy(int index, List<double?> shortMaVal, List<double?> longMaVal, bool hasQty, bool check);
-        bool TimeToBuy(double? rsi, double? prevRsi, double overBuy, bool hasQty);
+        bool TimeToBuy(decimal rsi, decimal prevRsi, int overBuy, bool hasQty);
         bool TimeToSell(double? shortMaVal, double? longMaVal, double? prevShortMaVal, double? prevLongMaVal, bool hasQty);
         bool TimeToSell(double currentPrice, double buyPrice, double sellPct, bool hasQty);
         bool TimeToSell(StockTransaction lastTrans, ref double maxPrice, double currentPrice, double currentTime, double sellPct, bool hasQty);
-        bool TimeToSell(double? rsi, double? prevRsi, double overBuy, bool hasQty);
+        bool TimeToSell(decimal rsi, decimal prevRsi, int overBuy, bool hasQty);
     }
 }

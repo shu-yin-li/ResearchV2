@@ -220,8 +220,8 @@ namespace ResearchWebApi.Services
             var testCaseRsi = (TestCaseRSI)testCase;
             stockList.ForEach(stock =>
             {
-                var rsi = stock.RsiList[testCaseRsi.MeasureRangeDay] ?? null;
-                var prevRsi = prevStock.RsiList[testCaseRsi.MeasureRangeDay] ?? null;
+                var rsi = stock.RsiList[testCaseRsi.MeasureRangeDay];
+                var prevRsi = prevStock.RsiList[testCaseRsi.MeasureRangeDay];
                 if (stock.Date > periodStartTimeStamp)
                 {
                     var price = stock.Price ?? 0;

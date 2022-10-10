@@ -10,7 +10,7 @@ namespace ResearchWebApi.Models
         public double Date { get; set; }
         public double? Price { get; set; }
         public Dictionary<int,double?> MaList { get; set; }
-        public Dictionary<int,double?> RsiList { get; set; }
+        public Dictionary<int, decimal> RsiList { get; set; }
 
         public StockModelDTO()
         {
@@ -42,18 +42,18 @@ namespace ResearchWebApi.Models
         }
     }
 
-    public class RsiListResolver : IValueResolver<StockModel, StockModelDTO, Dictionary<int, double?>>
+    public class RsiListResolver : IValueResolver<StockModel, StockModelDTO, Dictionary<int, decimal>>
     {
-        public Dictionary<int, double?> Resolve(StockModel source, StockModelDTO destination, Dictionary<int, double?> member, ResolutionContext context)
+        public Dictionary<int, decimal> Resolve(StockModel source, StockModelDTO destination, Dictionary<int, decimal> member, ResolutionContext context)
         {
-            var rsiList = new Dictionary<int, double?>();
+            var rsiList = new Dictionary<int, decimal>();
             RsiModel maObject = JsonConvert.DeserializeObject<RsiModel>(source.RsiString);
 
             var properties = typeof(RsiModel).GetProperties();
             foreach (var prop in properties)
             {
                 var key = int.Parse(prop.Name.Replace("Rsi", ""));
-                var value = (double?)prop.GetValue(maObject);
+                var value = (decimal)prop.GetValue(maObject);
                 rsiList.Add(key, value);
             }
 

@@ -51,7 +51,7 @@ namespace ResearchWebApi.Services
         }
 
         // RSI
-        public bool TimeToBuy(double? rsi, double? prevRsi, double overSell, bool hasQty)
+        public bool TimeToBuy(decimal rsi, decimal prevRsi, int overSell, bool hasQty)
         {
             var check = prevRsi >= overSell;
             return rsi < overSell && hasQty == false && check;
@@ -114,7 +114,7 @@ namespace ResearchWebApi.Services
         }
 
         // RSI
-        public bool TimeToSell(double? rsi, double? prevRsi, double overBuy, bool hasQty)
+        public bool TimeToSell(decimal rsi, decimal prevRsi, int overBuy, bool hasQty)
         {
             var check = prevRsi <= overBuy;
             return rsi > overBuy && hasQty == false && check;

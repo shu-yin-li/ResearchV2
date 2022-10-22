@@ -146,11 +146,6 @@ namespace ResearchWebApi.Services
 
             slidingWindows.ForEach((window) =>
             {
-                var periodStart = window.TestPeriod.Start;
-                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start, window.TestPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
-
                 var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
                 var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
                 if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
@@ -164,7 +159,20 @@ namespace ResearchWebApi.Services
                     SellLongTermMa = int.Parse(transNodes[3]),
                 };
 
-                var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.SMA);
+                List<StockTransaction> transactions = new List<StockTransaction>();
+                var periodStart = window.TestPeriod.Start;
+                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start, window.TestPeriod.End.AddDays(365));
+                var stockListDto = new List<StockModelDTO>();
+                var increasedEndDay = 1;
+
+                do {
+                    var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End.AddDays(increasedEndDay)));
+                    stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
+                    transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.SMA);
+                    increasedEndDay++;
+                } while (transactions.Count <= 1 && stockListDto.Count != stockList.Count);
+
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
                 var eachWindowResultParameter = new EachWindowResultParameter

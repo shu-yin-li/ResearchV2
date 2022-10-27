@@ -126,10 +126,6 @@ namespace ResearchWebApi.Services
             if (strategyType == StrategyType.SMA) GetMyTransactionsSMA(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
             if (strategyType == StrategyType.RSI) GetMyTransactionsRSI(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
 
-            var currentStock = stockList.Last().Price ?? 0;
-            var periodEnd = stockList.Last().Date;
-            ProfitSettlement(currentStock, stockList, testCase, myTransactions, periodEnd);
-
             return myTransactions;
         }
 

@@ -25,5 +25,6 @@ namespace ResearchWebApi.Interface
             ITestCase testCase,
             double periodStartTimeStamp,
             StockTransaction lastTrans);
+        List<StockTransaction> ProfitSettlement(double currentStock, List<StockModelDTO> stockList, ITestCase testCase, List<StockTransaction> myTrans, double periodEnd);
     }
 }

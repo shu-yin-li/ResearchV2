@@ -171,7 +171,7 @@ namespace ResearchWebApi.Services
                     stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
                     transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.SMA);
                     increasedEndDay++;
-                } while (transactions.Count <= 1 && stockListDto.Count != stockList.Count);
+                } while ((transactions.Count <= 1 || transactions.Count % 2 == 0) && stockListDto.Count != stockList.Count);
 
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);

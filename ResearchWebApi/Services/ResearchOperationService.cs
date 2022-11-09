@@ -154,12 +154,12 @@ namespace ResearchWebApi.Services
                 {
                     var price = stock.Price ?? 0;
 
-                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
+                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty)
+                                        || TestAfterGoldCross(buyShortMaVal, buyLongMaVal, testCaseSma, hasQty);
                     bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty);
 
                     if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
                     {
-
                         var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
                         lastTrans = new StockTransactionSMA
                         {
@@ -202,6 +202,11 @@ namespace ResearchWebApi.Services
             });
 
             return myTransactions;
+        }
+
+        private bool TestAfterGoldCross(double? buyShortMaVal, double? buyLongMaVal, TestCaseSMA testCaseSMA, bool hasQty)
+        {
+            return testCaseSMA.Type == ResultTypeEnum.Test && buyShortMaVal > buyLongMaVal && hasQty == false;
         }
 
         public List<StockTransaction> GetMyTransactionsRSI(

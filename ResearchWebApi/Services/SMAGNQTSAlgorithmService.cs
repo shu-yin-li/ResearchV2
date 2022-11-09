@@ -444,6 +444,9 @@ namespace ResearchWebApi.Services
         {
             
             var transactions = _researchOperationService.GetMyTransactions(stockList, currentTestCase, periodStartTimeStamp, strategyType);
+            var currentStock = stockList.Last().Price ?? 0;
+            var periodEnd = stockList.Last().Date;
+            _researchOperationService.ProfitSettlement(currentStock, stockList, currentTestCase, transactions, periodEnd);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
             return result;

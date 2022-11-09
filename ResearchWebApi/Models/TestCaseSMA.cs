@@ -1,4 +1,5 @@
-﻿using ResearchWebApi.Interface;
+﻿using ResearchWebApi.Enums;
+using ResearchWebApi.Interface;
 
 namespace ResearchWebApi.Models
 {
@@ -6,6 +7,7 @@ namespace ResearchWebApi.Models
     {
         public string Symbol { get; set; } = "AAPL";
         public double Funds { get; set; }
+        public ResultTypeEnum Type { get; set; } = ResultTypeEnum.Train;
         public int BuyShortTermMa { get; set; }
         public int BuyLongTermMa { get; set; }
         public int SellShortTermMa { get; set; }

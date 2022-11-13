@@ -154,8 +154,7 @@ namespace ResearchWebApi.Services
                 {
                     var price = stock.Price ?? 0;
 
-                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty)
-                                        || TestAfterGoldCross(buyShortMaVal, buyLongMaVal, testCaseSma, hasQty);
+                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
                     bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty);
 
                     if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)

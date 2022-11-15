@@ -146,7 +146,7 @@ namespace ResearchWebApi.Services
 
             slidingWindows.ForEach((window) =>
             {
-                var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start.AddHours(8))}";
+                var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
                 var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
                 if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
                 var transNodes = trainDetails.TransactionNodes.Split(",");
@@ -161,14 +161,14 @@ namespace ResearchWebApi.Services
                 };
 
                 List<StockTransaction> transactions = new List<StockTransaction>();
-                var periodStart = window.TestPeriod.Start.AddHours(8);
+                var periodStart = window.TestPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddHours(8), window.TestPeriod.End.AddHours(8).AddDays(365));
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start, window.TestPeriod.End.AddDays(365));
                 var stockListDto = new List<StockModelDTO>();
                 var increasedEndDay = 1;
 
                 do {
-                    var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End.AddHours(8).AddDays(increasedEndDay)));
+                    var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End.AddDays(increasedEndDay)));
                     stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
                     transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.SMA);
                     increasedEndDay++;
@@ -219,8 +219,8 @@ namespace ResearchWebApi.Services
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
             slidingWindows.ForEach((window) =>
             {
-                var periodStart = window.TrainPeriod.Start.AddHours(8);
-                var periodEnd = window.TrainPeriod.End.AddHours(8);
+                var periodStart = window.TrainPeriod.Start;
+                var periodEnd = window.TrainPeriod.End;
                 var copyCRandom = new Queue<int>(cRandom);
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
 
@@ -229,7 +229,7 @@ namespace ResearchWebApi.Services
                 // 用這邊在控制取fitness/transaction的日期區間
                 // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
                 // +1 是為了時差 取正確的最後一天
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddHours(8).AddDays(-7), window.TrainPeriod.End.AddHours(8).AddDays(1));
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
                 var bestGbestList = new List<TestCaseSMA>();
                 var bestGbest = new StatusValue();

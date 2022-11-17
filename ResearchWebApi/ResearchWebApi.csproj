@@ -28,6 +28,9 @@
     <None Remove="CsvHelper" />
     <None Remove="Hangfire.Dashboard.Authorization" />
     <None Remove="Helper\" />
+    <None Remove="Models\Particle\" />
+    <None Remove="Models\TestCase\" />
+    <None Remove="Models\StatusValue\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire" Version="1.7.30" />
@@ -50,5 +53,8 @@
     <Folder Include="Repository\" />
     <Folder Include="Models\Results\" />
     <Folder Include="Helper\" />
+    <Folder Include="Models\Particle\" />
+    <Folder Include="Models\TestCase\" />
+    <Folder Include="Models\StatusValue\" />
   </ItemGroup>
 </Project>

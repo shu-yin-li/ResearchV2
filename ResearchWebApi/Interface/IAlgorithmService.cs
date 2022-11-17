@@ -6,9 +6,9 @@ namespace ResearchWebApi.Interface
     public interface IAlgorithmService
     {
         
-        void UpdateGBestAndGWorst(Particle p, ref StatusValue gBest, ref StatusValue gWorst, int experiment, int iteration);
-        void GetLocalBestAndWorst(List<Particle> particles, ref StatusValue localBest, ref StatusValue localWorst);
-        void UpdateProbability(Particle p, StatusValue localBest, StatusValue localWorst);
+        void UpdateGBestAndGWorst(IParticle p, ref IStatusValue gBest, ref IStatusValue gWorst, int experiment, int iteration);
+        void GetLocalBestAndWorst(List<IParticle> particles, ref IStatusValue localBest, ref IStatusValue localWorst);
+        void UpdateProbability(IParticle p, IStatusValue localBest, IStatusValue localWorst);
         AlgorithmConst GetConst();
     }
 }

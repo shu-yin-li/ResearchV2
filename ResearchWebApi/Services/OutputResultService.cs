@@ -89,11 +89,17 @@ namespace ResearchWebApi.Services
                     var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}";
                 }
-                else
+                else if(trainDetailsParameter.Strategy == StrategyType.RSI)
                 {
                     var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
                 }
+                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
+                {
+                    var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa},{testCaseTrailingStop.StopPercentage}";
+                }
+
                 return new TrainDetails
                 {
                     CommonResultId = commonResultId,
@@ -145,10 +151,15 @@ namespace ResearchWebApi.Services
                     var testCaseSma = (TestCaseSMA)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseSma.BuyShortTermMa},{testCaseSma.BuyLongTermMa},{testCaseSma.SellShortTermMa},{testCaseSma.SellLongTermMa}";
                 }
-                else
+                else if (trainDetailsParameter.Strategy == StrategyType.RSI)
                 {
                     var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
+                }
+                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
+                {
+                    var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa},{testCaseTrailingStop.StopPercentage}";
                 }
                 return new TrainDetails
                 {

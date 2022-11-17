@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ResearchWebApi.Enums;
@@ -125,6 +125,7 @@ namespace ResearchWebApi.Services
 
             if (strategyType == StrategyType.SMA) GetMyTransactionsSMA(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
             if (strategyType == StrategyType.RSI) GetMyTransactionsRSI(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
+            if (strategyType == StrategyType.TrailingStop) GetMyTransactionsTrailingStop(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
 
             return myTransactions;
         }
@@ -176,8 +177,7 @@ namespace ResearchWebApi.Services
                         hasQty = !hasQty;
 
                     }
-                    // todo: 停損比例改為參數，從testcase丟進來
-                    // todo: 注意現在是用哪一種時機點
+                    // Note: 注意現在是用哪一種時機點
                     else if (sellShortMa != null && sellLongMaVal != null && testToSell)
                     {
                         var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
@@ -206,6 +206,74 @@ namespace ResearchWebApi.Services
         private bool TestAfterGoldCross(double? buyShortMaVal, double? buyLongMaVal, TestCaseSMA testCaseSMA, bool hasQty)
         {
             return testCaseSMA.Type == ResultTypeEnum.Test && buyShortMaVal > buyLongMaVal && hasQty == false;
+        }
+
+        public List<StockTransaction> GetMyTransactionsTrailingStop(
+            List<StockTransaction> myTransactions,
+            List<StockModelDTO> stockList,
+            ITestCase testCase,
+            double periodStartTimeStamp,
+            StockTransaction lastTrans)
+        {
+            bool hasQty = false;
+            StockModelDTO prevStock = stockList.FirstOrDefault();
+            var testCaseTrailingStop = (TestCaseTrailingStop)testCase;
+            double maxPrice = 0;
+            stockList.ForEach(stock =>
+            {
+                var buyShortMaVal = stock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
+                var buyLongMaVal = stock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null;
+                var trailingStopPercentage = testCaseTrailingStop.StopPercentage;
+
+                var prevBuyShortMa = prevStock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
+                var prevBuyLongMaVal = prevStock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null;
+                if (stock.Date > periodStartTimeStamp)
+                {
+                    var price = stock.Price ?? 0;
+
+                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
+                    bool testToSell = _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
+
+                    if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
+                    {
+                        var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
+                        lastTrans = new StockTransactionSMA
+                        {
+                            TransTime = stock.Date,
+                            TransPrice = price,
+                            TransType = TransactionType.Buy,
+                            TransVolume = volume,
+                            Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                            BuyShortMaPrice = buyShortMaVal,
+                            BuyLongMaPrice = buyLongMaVal,
+                            BuyShortMaPrice1DayBefore = prevBuyShortMa,
+                            BuyLongMaPrice1DayBefore = prevBuyLongMaVal,
+                        };
+                        myTransactions.Add(lastTrans);
+                        hasQty = !hasQty;
+
+                    }
+                    // Note: 注意現在是用哪一種時機點
+                    else if (testToSell)
+                    {
+                        var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
+                        lastTrans = new StockTransactionSMA
+                        {
+                            TransTime = stock.Date,
+                            TransPrice = price,
+                            TransType = TransactionType.Sell,
+                            TransVolume = volume,
+                            Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                            TrailingStopPercentage = trailingStopPercentage,
+                        };
+                        myTransactions.Add(lastTrans);
+                        hasQty = !hasQty;
+                    }
+                }
+                prevStock = stock;
+            });
+
+            return myTransactions;
         }
 
         public List<StockTransaction> GetMyTransactionsRSI(
@@ -243,8 +311,7 @@ namespace ResearchWebApi.Services
                         myTransactions.Add(lastTrans);
                         hasQty = !hasQty;
                     }
-                    // todo: 停損比例改為參數，從testcase丟進來
-                    // todo: 注意現在是用哪一種時機點
+                    // Note: 注意現在是用哪一種時機點
                     else if (rsi != null && testToSell)
                     {
                         var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);

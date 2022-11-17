@@ -27,6 +27,7 @@ namespace ResearchWebApi.Models
         public double? SellLongMaPrice1DayBefore { get; set; }
         public double? SellShortMaPrice { get; set; }
         public double? SellLongMaPrice { get; set; }
+        public double? TrailingStopPercentage { get; set; }
     }
 
     public class StockTransList

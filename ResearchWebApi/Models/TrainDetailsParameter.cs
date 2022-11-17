@@ -17,7 +17,7 @@ namespace ResearchWebApi.Models
         public double BestCount { get; set; }
         public double PeriodStartTimeStamp { get; set; }
         public StrategyType Strategy { get; set; }
-        public List<TestCaseSMA> BestGbestList { get; set; }
+        public List<ITestCase> BestGbestList { get; set; }
 
         public TrainDetailsParameter()
         {

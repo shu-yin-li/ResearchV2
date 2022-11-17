@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using AutoMapper;
+using CsvHelper;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
@@ -231,8 +234,8 @@ namespace ResearchWebApi.Services
                 // +1 是為了時差 取正確的最後一天
                 var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
-                var bestGbestList = new List<TestCaseSMA>();
-                var bestGbest = new StatusValue();
+                var bestGbestList = new List<ITestCase>();
+                var bestGbest = new SMAStatusValue();
                 int gBestCount = 0;
                 //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
 
@@ -241,9 +244,17 @@ namespace ResearchWebApi.Services
 
                 for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
                 {
-                    StatusValue gBest;
-                    gBest = _qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
-                    CompareGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
+                    SMAStatusValue gBest;
+                    #region debug
+                    //var path = Path.Combine(Environment.CurrentDirectory, $"Output/debug G best transaction exp: {e} - C random.csv");
+                    //using (var writer = new StreamWriter(path))
+                    //using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture, false))
+                    //{
+                    //    gBest = (SMAStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, csv);
+                    //}
+                    #endregion
+                    gBest = (SMAStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
+                    CompareSMAGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
                 }
 
                 #endregion
@@ -297,6 +308,102 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
+        public void TrainGNQTSWithTrailingStop(SlidingWinPair pair, string symbol, Period period, bool isCRandom)
+        {
+            var random = new Random(343);
+            Queue<int> cRandom = new Queue<int>();
+            if (isCRandom)
+            {
+                Console.WriteLine("Reading C Random.");
+                cRandom = _fileHandler.Readcsv("Data/srand343");
+            }
+
+            var strategy = StrategyType.TrailingStop;
+
+            List<SlidingWindow> slidingWindows = pair.IsStar
+                ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
+                : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
+
+            var eachWindowResultParameterList = new List<EachWindowResultParameter>();
+            var trainDetailsParameterList = new List<TrainDetailsParameter>();
+            slidingWindows.ForEach((window) =>
+            {
+                var periodStart = window.TrainPeriod.Start;
+                var periodEnd = window.TrainPeriod.End;
+                var copyCRandom = new Queue<int>(cRandom);
+                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
+
+                #region Train method
+
+                // 用這邊在控制取fitness/transaction的日期區間
+                // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
+                // +1 是為了時差 取正確的最後一天
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var bestGbestList = new List<ITestCase>();
+                var bestGbest = new TrailingStopStatusValue();
+                int gBestCount = 0;
+                //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
+
+                var randomSource = copyCRandom.Any() ? "CRandom" : "C#";
+                var algorithmConst = _qtsAlgorithmService.GetConst();
+
+                for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
+                {
+                    TrailingStopStatusValue gBest;
+                    gBest = (TrailingStopStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
+                    CompareTrailingStopGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
+                }
+
+                #endregion
+
+                #region generate result
+
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    SlidingWindow = window,
+                    Strategy = strategy
+                };
+
+                var trainDetailsParameter = new TrainDetailsParameter
+                {
+                    RandomSource = randomSource,
+                    Delta = algorithmConst.DELTA,
+                    ExperimentNumber = algorithmConst.EXPERIMENT_NUMBER,
+                    Generations = algorithmConst.GENERATIONS,
+                    SearchNodeNumber = algorithmConst.SEARCH_NODE_NUMBER,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    Strategy = strategy
+                };
+
+                if (bestGbest.BuyMa1.Count > 0)
+                {
+                    eachWindowResultParameter.Result = bestGbest.Fitness;
+                    trainDetailsParameter.BestTestCase =
+                        new TestCaseTrailingStop
+                        {
+                            Funds = FUNDS,
+                            Symbol = symbol,
+                            BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
+                            BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                            StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
+                        };
+                    trainDetailsParameter.ExperimentNumberOfBest = bestGbest.Experiment;
+                    trainDetailsParameter.GenerationOfBest = bestGbest.Generation;
+                    trainDetailsParameter.BestCount = gBestCount;
+                    trainDetailsParameter.BestGbestList = bestGbestList;
+                }
+
+                eachWindowResultParameterList.Add(eachWindowResultParameter);
+                trainDetailsParameterList.Add(trainDetailsParameter);
+
+                #endregion
+
+            });
+            _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
+        }
         public void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period)
         {
             List<int> range = new List<int> { 5, 6, 14 };
@@ -363,6 +470,67 @@ namespace ResearchWebApi.Services
             TraditionalTrain(pair, symbol, period, StrategyType.SMA, testCases);
         }
 
+        public void TrainTraditionalWithTrailingStop(SlidingWinPair pair, string symbol, Period period)
+        {
+            var testCases = new List<ITestCase>();
+            List<int> shortMaList = new List<int> { 5, 10 };
+            List<int> midMaList = new List<int> { 20, 60 };
+            List<int> longMaList = new List<int> { 120, 240 };
+            var trailingStop = 10;
+            shortMaList.ForEach((ma1) =>
+            {
+                midMaList.ForEach((ma2) =>
+                {
+                    testCases.Add(new TestCaseTrailingStop
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        BuyShortTermMa = ma1,
+                        BuyLongTermMa = ma2,
+                        StopPercentage = trailingStop,
+                    });
+                });
+            });
+            midMaList.ForEach((ma1) =>
+            {
+                longMaList.ForEach((ma2) =>
+                {
+                    testCases.Add(new TestCaseTrailingStop
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        BuyShortTermMa = ma1,
+                        BuyLongTermMa = ma2,
+                        StopPercentage = trailingStop,
+                    });
+                });
+            });
+            TraditionalTrain(pair, symbol, period, StrategyType.TrailingStop, testCases);
+        }
+
+        public List<StockTransaction> Temp(Period period)
+        {
+            var testCase = new TestCaseTrailingStop
+            {
+                Funds = FUNDS,
+                Symbol = "AAPL",
+                BuyShortTermMa = 5,
+                BuyLongTermMa = 20,
+                StopPercentage = 10,
+            };
+            SlidingWindow window = _slidingWindowService.GetSlidingWindows(period, PeriodEnum.H, PeriodEnum.H).First();
+            var periodStart = window.TrainPeriod.Start;
+            var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
+            var stockList = _dataService.GetStockDataFromDb("AAPL", window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+            var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.TrailingStop);
+            var currentStock = stockList.Last().Price ?? 0;
+            var periodEnd = stockList.Last().Date;
+            _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
+            var earns = _researchOperationService.GetEarningsResults(transactions);
+            var result = Math.Round(earns, 10);
+            return transactions;
+        }
         #region Private method
 
         private void TraditionalTrain(SlidingWinPair pair, string symbol, Period period, StrategyType strategyType, List<ITestCase> testCases)
@@ -423,11 +591,11 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateTraditionalResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
-        private static void CompareGBestByBits(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest, ref List<TestCaseSMA> bestGbestList)
+        private static void CompareSMAGBestByBits(ref SMAStatusValue bestGbest, ref int gBestCount, SMAStatusValue gBest, ref List<ITestCase> bestGbestList)
         {
             if (bestGbest.Fitness < gBest.Fitness)
             {
-                bestGbest = gBest.DeepClone();
+                bestGbest = (SMAStatusValue)gBest.DeepClone();
                 gBestCount = 0;
             }
 
@@ -451,11 +619,54 @@ namespace ResearchWebApi.Services
             }
         }
 
-        private static void CompareGBestByFitness(ref StatusValue bestGbest, ref int gBestCount, StatusValue gBest, ref List<StatusValue> bestGbestList)
+        private static void CompareTrailingStopGBestByBits(ref TrailingStopStatusValue bestGbest, ref int gBestCount, TrailingStopStatusValue gBest, ref List<ITestCase> bestGbestList)
         {
             if (bestGbest.Fitness < gBest.Fitness)
             {
-                bestGbest = gBest.DeepClone();
+                bestGbest = (TrailingStopStatusValue)gBest.DeepClone();
+                gBestCount = 0;
+            }
+
+            if (
+                Utils.GetMaNumber(bestGbest.BuyMa1) == Utils.GetMaNumber(gBest.BuyMa1) &&
+                Utils.GetMaNumber(bestGbest.BuyMa2) == Utils.GetMaNumber(gBest.BuyMa2) &&
+                Utils.GetMaNumber(bestGbest.StopPercentage) == Utils.GetMaNumber(gBest.StopPercentage) &&
+                bestGbest.Fitness == gBest.Fitness
+                ) gBestCount++;
+
+            if (bestGbest.Fitness == gBest.Fitness)
+            {
+                bestGbestList.Add(new TestCaseTrailingStop
+                {
+                    BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
+                    BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                    StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
+                });
+            }
+        }
+
+        private static void CompareSMAGBestByFitness(ref IStatusValue bestGbest, ref int gBestCount, IStatusValue gBest, ref List<IStatusValue> bestGbestList)
+        {
+            if (bestGbest.Fitness < gBest.Fitness)
+            {
+                var statusValue = (SMAStatusValue)gBest;
+                bestGbest = statusValue.DeepClone();
+                gBestCount = 0;
+            }
+
+            if (bestGbest.Fitness == gBest.Fitness)
+            {
+                gBestCount++;
+                bestGbestList.Add(bestGbest);
+            }
+        }
+
+        private static void CompareTrailingStopGBestByFitness(ref IStatusValue bestGbest, ref int gBestCount, IStatusValue gBest, ref List<IStatusValue> bestGbestList)
+        {
+            if (bestGbest.Fitness < gBest.Fitness)
+            {
+                var statusValue = (TrailingStopStatusValue)gBest;
+                bestGbest = statusValue.DeepClone();
                 gBestCount = 0;
             }
 

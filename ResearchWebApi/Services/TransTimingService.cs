@@ -124,15 +124,7 @@ namespace ResearchWebApi.Services
         private static double calculateStopPrice(double lastTransPrice, double maxPrice, double sellPct)
         {
             var stopPrice = maxPrice * (100 - sellPct) / 100;
-            var lossSellPrice = lastTransPrice * (100 - sellPct / 10) / 100;
-            if (lossSellPrice > stopPrice)
-            {
-                return lossSellPrice;
-            }
-            else
-            {
-                return stopPrice;
-            }
+            return stopPrice;
         }
 
         #endregion

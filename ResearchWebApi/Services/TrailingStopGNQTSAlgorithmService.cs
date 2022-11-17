@@ -8,7 +8,7 @@ using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Services
 {
-    public class SMAGNQTSAlgorithmService: IGNQTSAlgorithmService
+    public class TrailingStopGNQTSAlgorithmService : IGNQTSAlgorithmService
     {
         private IResearchOperationService _researchOperationService;
         // GNQTS paremeters
@@ -16,10 +16,11 @@ namespace ResearchWebApi.Services
         const int GENERATIONS = 10000;
         const int SEARCH_NODE_NUMBER = 10;
         const int DIGIT_NUMBER = 8;
+        const int DIGIT_NUMBER_2 = 6;
         const double RANDOM_MAX = 32767.0;
         const int EXPERIMENT_NUMBER = 50;
 
-        public SMAGNQTSAlgorithmService(IResearchOperationService researchOperationService)
+        public TrailingStopGNQTSAlgorithmService(IResearchOperationService researchOperationService)
         {
             _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
         }
@@ -44,11 +45,11 @@ namespace ResearchWebApi.Services
         public IStatusValue Fit(Queue<int> cRandom, Random random, double funds, List<StockModelDTO> stockList, int experiment, double periodStartTimeStamp, StrategyType strategyType, CsvWriter csv)
         {
             var iteration = 0;
-            
-            IStatusValue gBest = new SMAStatusValue(funds);
-            IStatusValue gWorst = new SMAStatusValue(funds);
-            IStatusValue localBest = new SMAStatusValue(funds);
-            IStatusValue localWorst = new SMAStatusValue(funds);
+
+            IStatusValue gBest = new TrailingStopStatusValue(funds);
+            IStatusValue gWorst = new TrailingStopStatusValue(funds);
+            IStatusValue localBest = new TrailingStopStatusValue(funds);
+            IStatusValue localWorst = new TrailingStopStatusValue(funds);
             //#region debug
 
             //csv.WriteField($"exp:{experiment}");
@@ -61,19 +62,19 @@ namespace ResearchWebApi.Services
             List<IParticle> particles = new List<IParticle>();
             for (var i = 0; i < SEARCH_NODE_NUMBER; i++)
             {
-                particles.Add(new SMAParticle());
+                particles.Add(new TrailingStopParticle());
             }
 
             MetureX(cRandom, random, particles, funds);
 
-            var index = 0;
+            //var index = 0;
             particles.ForEach((p) =>
             {
                 p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp, strategyType);
                 //#region debug
 
                 //csv.WriteField($"P{index}");
-                //DebugPrintParticle(csv, (SMAStatusValue)p.CurrentFitness);
+                //DebugPrintParticle(csv, p.CurrentFitness);
                 //csv.WriteField($"{p.CurrentFitness.Fitness / funds * 100}% ({p.CurrentFitness.Fitness}/{funds})");
                 //csv.NextRecord();
                 //index++;
@@ -96,10 +97,10 @@ namespace ResearchWebApi.Services
             //#region debug
 
             //csv.WriteField("global best");
-            //DebugPrintParticle(csv, (SMAStatusValue)gBest);
+            //DebugPrintParticle(csv, gBest);
             //csv.NextRecord();
             //csv.WriteField("local worst");
-            //DebugPrintParticle(csv, (SMAStatusValue)localWorst);
+            //DebugPrintParticle(csv, localWorst);
             //csv.NextRecord();
 
             //#endregion
@@ -137,14 +138,14 @@ namespace ResearchWebApi.Services
                     //#region debug
 
                     //csv.WriteField($"P{index}");
-                    //DebugPrintParticle(csv, (SMAStatusValue)p.CurrentFitness);
+                    //DebugPrintParticle(csv, p.CurrentFitness);
                     //csv.WriteField($"{p.CurrentFitness.Fitness / funds * 100}% ({p.CurrentFitness.Fitness}/{funds})");
                     //csv.NextRecord();
                     //index++;
 
                     //#endregion
                 });
-                
+
 
                 hasAnyTransaction = particles.FindAll(p => p.CurrentFitness.Fitness - funds != 0).Any();
 
@@ -160,10 +161,10 @@ namespace ResearchWebApi.Services
                 //#region debug
 
                 //csv.WriteField("global best");
-                //DebugPrintParticle(csv, (SMAStatusValue)gBest);
+                //DebugPrintParticle(csv, gBest);
                 //csv.NextRecord();
                 //csv.WriteField("local worst");
-                //DebugPrintParticle(csv, (SMAStatusValue)localWorst);
+                //DebugPrintParticle(csv, localWorst);
                 //csv.NextRecord();
 
                 //#endregion
@@ -175,7 +176,7 @@ namespace ResearchWebApi.Services
                 particles.ForEach((p) =>
                 {
                     UpdateProbability(p, gBest, localWorst);
-                    
+
                 });
 
                 //#region debug
@@ -192,7 +193,7 @@ namespace ResearchWebApi.Services
 
         private static void DebugPrintBetaMatrix(CsvWriter csv, IParticle particle)
         {
-            var p = (SMAParticle) particle;
+            var p = (TrailingStopParticle)particle;
             var str = string.Empty;
             p.BuyMa1Beta.ForEach(digit =>
             {
@@ -210,15 +211,7 @@ namespace ResearchWebApi.Services
             csv.WriteField("");
 
             str = string.Empty;
-            p.SellMa1Beta.ForEach(digit =>
-            {
-                str += $"{digit},";
-            });
-            csv.WriteField(str);
-            csv.WriteField("");
-
-            str = string.Empty;
-            p.SellMa2Beta.ForEach(digit =>
+            p.StopPercentageBeta.ForEach(digit =>
             {
                 str += $"{digit},";
             });
@@ -226,7 +219,7 @@ namespace ResearchWebApi.Services
             csv.WriteField("");
         }
 
-        private void DebugPrintParticle(CsvWriter csv, SMAStatusValue current)
+        private void DebugPrintParticle(CsvWriter csv, TrailingStopStatusValue current)
         {
             var str = string.Empty;
             current.BuyMa1.ForEach(digit =>
@@ -245,25 +238,17 @@ namespace ResearchWebApi.Services
             csv.WriteField("");
 
             str = string.Empty;
-            current.SellMa1.ForEach(digit =>
+            current.StopPercentage.ForEach(digit =>
             {
                 str += $"{digit}";
             });
-            csv.WriteField($"{Utils.GetMaNumber(current.SellMa1)} ({str})");
-            csv.WriteField("");
-
-            str = string.Empty;
-            current.SellMa2.ForEach(digit =>
-            {
-                str += $"{digit}";
-            });
-            csv.WriteField($"{Utils.GetMaNumber(current.SellMa2)} ({str})");
+            csv.WriteField($"{Utils.GetMaNumber(current.StopPercentage)} ({str})");
             csv.WriteField("");
         }
 
         public void UpdateGBestAndGWorst(IParticle p, ref IStatusValue gBest, ref IStatusValue gWorst, int experiment, int iteration)
         {
-            SMAStatusValue currentFitness = (SMAStatusValue)p.CurrentFitness;
+            TrailingStopStatusValue currentFitness = (TrailingStopStatusValue)p.CurrentFitness;
             if (gBest.Fitness < p.CurrentFitness.Fitness)
             {
                 gBest = currentFitness.DeepClone();
@@ -281,13 +266,12 @@ namespace ResearchWebApi.Services
 
         public void GetLocalBestAndWorst(List<IParticle> particles, ref IStatusValue localBest, ref IStatusValue localWorst)
         {
-            SMAStatusValue max = (SMAStatusValue)particles.First().CurrentFitness;
-            SMAStatusValue min = (SMAStatusValue)particles.First().CurrentFitness;
-            
+            IStatusValue max = particles.First().CurrentFitness;
+            IStatusValue min = particles.First().CurrentFitness;
 
             particles.ForEach((p) =>
             {
-                SMAStatusValue currentFitness = (SMAStatusValue)p.CurrentFitness;
+                TrailingStopStatusValue currentFitness = (TrailingStopStatusValue)p.CurrentFitness;
                 if (p.CurrentFitness.Fitness > max.Fitness)
                 {
                     max = currentFitness.DeepClone();
@@ -303,9 +287,9 @@ namespace ResearchWebApi.Services
 
         public void UpdateProbability(IParticle particle, IStatusValue gbestStatusValue, IStatusValue localWorstStatusValue)
         {
-            var p = (SMAParticle)particle;
-            var gBest = (SMAStatusValue)gbestStatusValue;
-            var localWorst = (SMAStatusValue)localWorstStatusValue;
+            var p = (TrailingStopParticle)particle;
+            var gBest = (TrailingStopStatusValue)gbestStatusValue;
+            var localWorst = (TrailingStopStatusValue)localWorstStatusValue;
             if (!gBest.BuyMa1.Any()) return;
             var deltaDigitNum = DELTA.ToString().Split('.')[1].Count();
             for (var index = 0; index < DIGIT_NUMBER; index++)
@@ -328,32 +312,24 @@ namespace ResearchWebApi.Services
                 {
                     p.BuyMa2Beta[index] = Math.Round(p.BuyMa2Beta[index] - DELTA, deltaDigitNum);
                 }
-                // SellMa1
-                if (gBest.SellMa1[index] > localWorst.SellMa1[index])
+                // Stop Percentage
+                if (index >= DIGIT_NUMBER_2) continue;
+                if (gBest.StopPercentage[index] > localWorst.StopPercentage[index])
                 {
-                    p.SellMa1Beta[index] = Math.Round(p.SellMa1Beta[index] + DELTA, deltaDigitNum);
+                    p.StopPercentageBeta[index] = Math.Round(p.StopPercentageBeta[index] + DELTA, deltaDigitNum);
                 }
-                else if (gBest.SellMa1[index] < localWorst.SellMa1[index])
+                else if (gBest.StopPercentage[index] < localWorst.StopPercentage[index])
                 {
-                    p.SellMa1Beta[index] = Math.Round(p.SellMa1Beta[index] - DELTA, deltaDigitNum);
-                }
-                // SellMa2
-                if (gBest.SellMa2[index] > localWorst.SellMa2[index])
-                {
-                    p.SellMa2Beta[index] = Math.Round(p.SellMa2Beta[index] + DELTA, deltaDigitNum);
-                }
-                else if (gBest.SellMa2[index] < localWorst.SellMa2[index])
-                {
-                    p.SellMa2Beta[index] = Math.Round(p.SellMa2Beta[index] - DELTA, deltaDigitNum);
+                    p.StopPercentageBeta[index] = Math.Round(p.StopPercentageBeta[index] - DELTA, deltaDigitNum);
                 }
             }
         }
 
         public void UpdateProByGN(IParticle particle, IStatusValue gbestStatusValue, IStatusValue localWorstStatusValue)
         {
-            var p = (SMAParticle)particle;
-            var gBest = (SMAStatusValue)gbestStatusValue;
-            var localWorst = (SMAStatusValue)localWorstStatusValue;
+            var p = (TrailingStopParticle)particle;
+            var gBest = (TrailingStopStatusValue)gbestStatusValue;
+            var localWorst = (TrailingStopStatusValue)localWorstStatusValue;
             if (!gBest.BuyMa1.Any()) return;
             var deltaDigitNum = DELTA.ToString().Split('.')[1].Count();
             for (var index = 0; index < DIGIT_NUMBER; index++)
@@ -371,19 +347,12 @@ namespace ResearchWebApi.Services
                 {
                     p.BuyMa2Beta[index] = Math.Round(1 - p.BuyMa2Beta[index], deltaDigitNum);
                 }
-
-                // SellMa1
-                if ((gBest.SellMa1[index] > localWorst.SellMa1[index] && p.SellMa1Beta[index] < 0.5)
-                    || (gBest.SellMa1[index] < localWorst.SellMa1[index] && p.SellMa1Beta[index] > 0.5))
+                if (index >= DIGIT_NUMBER_2) continue;
+                // StopPercentage
+                if ((gBest.StopPercentage[index] > localWorst.StopPercentage[index] && p.StopPercentageBeta[index] < 0.5)
+                    || (gBest.StopPercentage[index] < localWorst.StopPercentage[index] && p.StopPercentageBeta[index] > 0.5))
                 {
-                    p.SellMa1Beta[index] = Math.Round(1 - p.SellMa1Beta[index], deltaDigitNum);
-                }
-
-                // SellMa2
-                if ((gBest.SellMa2[index] > localWorst.SellMa2[index] && p.SellMa2Beta[index] < 0.5)
-                    || (gBest.SellMa2[index] < localWorst.SellMa2[index] && p.SellMa2Beta[index] > 0.5))
-                {
-                    p.SellMa2Beta[index] = Math.Round(1 - p.SellMa2Beta[index], deltaDigitNum);
+                    p.StopPercentageBeta[index] = Math.Round(1 - p.StopPercentageBeta[index], deltaDigitNum);
                 }
             }
 
@@ -394,12 +363,12 @@ namespace ResearchWebApi.Services
             var isCrandom = cRandom.Any();
             particles.ForEach((particle) =>
             {
-                var p = (SMAParticle)particle;
-                var currentFitness = (SMAStatusValue)p.CurrentFitness;
+                var p = (TrailingStopParticle)particle;
+                var currentFitness = (TrailingStopStatusValue)p.CurrentFitness;
                 currentFitness.BuyMa1 = new List<int>();
                 p.BuyMa1Beta.ForEach((x) =>
                 {
-                    if(isCrandom)
+                    if (isCrandom)
                         currentFitness.BuyMa1.Add(x >= cRandom.Dequeue() / RANDOM_MAX ? 1 : 0);
                     else
                         currentFitness.BuyMa1.Add(x >= random.NextDouble() ? 1 : 0);
@@ -414,38 +383,25 @@ namespace ResearchWebApi.Services
                         currentFitness.BuyMa2.Add(x >= random.NextDouble() ? 1 : 0);
                 });
 
-                currentFitness.SellMa1 = new List<int>();
-                p.SellMa1Beta.ForEach((x) =>
+                currentFitness.StopPercentage = new List<int>();
+                p.StopPercentageBeta.ForEach((x) =>
                 {
                     if (isCrandom)
-                        currentFitness.SellMa1.Add(x >= cRandom.Dequeue() / RANDOM_MAX ? 1 : 0);
+                        currentFitness.StopPercentage.Add(x >= cRandom.Dequeue() / RANDOM_MAX ? 1 : 0);
                     else
-                        currentFitness.SellMa1.Add(x >= random.NextDouble() ? 1 : 0);
+                        currentFitness.StopPercentage.Add(x >= random.NextDouble() ? 1 : 0);
                 });
-
-                currentFitness.SellMa2 = new List<int>();
-                p.SellMa2Beta.ForEach((x) =>
-                {
-                    if (isCrandom)
-                        currentFitness.SellMa2.Add(x >= cRandom.Dequeue() / RANDOM_MAX ? 1 : 0);
-                    else
-                        currentFitness.SellMa2.Add(x >= random.NextDouble() ? 1 : 0);
-                });
-
                 p.CurrentFitness = currentFitness;
 
                 var buyMa1 = Utils.GetMaNumber(currentFitness.BuyMa1);
                 var buyMa2 = Utils.GetMaNumber(currentFitness.BuyMa2);
-                var sellMa1 = Utils.GetMaNumber(currentFitness.SellMa1);
-                var sellMa2 = Utils.GetMaNumber(currentFitness.SellMa2);
-
-                p.TestCase = new TestCaseSMA
+                var stopPct = Utils.GetMaNumber(currentFitness.StopPercentage);
+                p.TestCase = new TestCaseTrailingStop
                 {
                     Funds = funds,
                     BuyShortTermMa = buyMa1,
                     BuyLongTermMa = buyMa2,
-                    SellShortTermMa = sellMa1,
-                    SellLongTermMa = sellMa2,
+                    StopPercentage = stopPct,
                 };
             });
 
@@ -457,7 +413,7 @@ namespace ResearchWebApi.Services
             double periodStartTimeStamp,
             StrategyType strategyType)
         {
-            
+
             var transactions = _researchOperationService.GetMyTransactions(stockList, currentTestCase, periodStartTimeStamp, strategyType);
             var currentStock = stockList.Last().Price ?? 0;
             var periodEnd = stockList.Last().Date;
@@ -467,6 +423,4 @@ namespace ResearchWebApi.Services
             return result;
         }
     }
-
-    
 }

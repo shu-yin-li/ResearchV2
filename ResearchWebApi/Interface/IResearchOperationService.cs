@@ -19,6 +19,12 @@ namespace ResearchWebApi.Interface
             ITestCase testCase,
             double periodStartTimeStamp,
             StockTransaction lastTrans);
+        List<StockTransaction> GetMyTransactionsTrailingStop(
+            List<StockTransaction> myTransactions,
+            List<StockModelDTO> stockList,
+            ITestCase testCase,
+            double periodStartTimeStamp,
+            StockTransaction lastTrans);
         List<StockTransaction> GetMyTransactionsRSI(
             List<StockTransaction> myTransactions,
             List<StockModelDTO> stockList,

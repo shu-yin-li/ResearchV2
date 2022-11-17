@@ -25,8 +25,10 @@ namespace ResearchWebApi
 
         public static int GetMaNumber(List<int> metrix)
         {
-            if (metrix.Any())
+            if (metrix.Any() && metrix.Count == 8)
                 return 1 + metrix[7] * 1 + metrix[6] * 2 + metrix[5] * 4 + metrix[4] * 8 + metrix[3] * 16 + metrix[2] * 32 + metrix[1] * 64 + metrix[0] * 128;
+            else if (metrix.Any() && metrix.Count == 6)
+                return 1 + metrix[5] * 1 + metrix[4] * 2 + metrix[3] * 4 + metrix[2] * 8 + metrix[1] * 16 + metrix[0] * 32;
             else
                 return 0;
         }

@@ -52,6 +52,15 @@ namespace ResearchWebApi.Controllers
             }
 
             if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
+                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
+            {
+                BackgroundJob.Enqueue(()
+                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.Traditional
                 && trainParameter.TransactionTiming.Buy == StrategyType.RSI
                 && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
             {
@@ -64,6 +73,14 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
                 BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, trainParameter.IsCRandom));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
+                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
+            {
+                BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, trainParameter.IsCRandom));
                 return Ok();
             }
 
@@ -112,25 +129,10 @@ namespace ResearchWebApi.Controllers
             return Ok();
         }
 
-        [HttpGet("TestRSI")]
-        public IActionResult TestRSI()
+        [HttpPost("TestRSI")]
+        public IActionResult TestRSI([FromBody] Period period)
         {
-            PrepareSource("AAPL");
-            //var indicatorStockList = new List<StockModel> {
-            //    new StockModel { Price = 10 },
-            //    new StockModel { Price = 12 },
-            //    new StockModel { Price = 15 },
-            //    new StockModel { Price = 20 },
-            //    new StockModel { Price = 25 },
-            //    new StockModel { Price = 23 },
-            //    new StockModel { Price = 17 },
-            //    new StockModel { Price = 12 },
-            //    new StockModel { Price = 16 },
-            //    new StockModel { Price = 9 },
-            //    new StockModel { Price = 8 },
-            //};
-
-            //_indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
+            var transaction = _jobsService.Temp(period);
             return Ok();
         }
 

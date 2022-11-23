@@ -8,7 +8,7 @@ using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Services
 {
-    public class TrailingStopGNQTSAlgorithmService : IGNQTSAlgorithmService
+    public class TrailingStopGNQTSAlgorithmService : ITrailingStopGNQTSAlgorithmService
     {
         private IResearchOperationService _researchOperationService;
         // GNQTS paremeters

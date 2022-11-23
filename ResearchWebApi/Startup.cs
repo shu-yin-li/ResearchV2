@@ -41,7 +41,8 @@ namespace ResearchWebApi
             services.AddScoped<IJobsService, JobsService>();
             services.AddScoped<ISlidingWindowService, SlidingWindowService>();
             services.AddScoped<ITransTimingService, TransTimingService>();
-            services.AddScoped<IGNQTSAlgorithmService, TrailingStopGNQTSAlgorithmService>();
+            services.AddScoped<ISMAGNQTSAlgorithmService, SMAGNQTSAlgorithmService>();
+            services.AddScoped<ITrailingStopGNQTSAlgorithmService, TrailingStopGNQTSAlgorithmService>();
             services.AddScoped<IFileHandler, FileHandler>();
             
             // DB

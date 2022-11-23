@@ -133,7 +133,7 @@ namespace ResearchWebApi.Controllers
         public IActionResult TestRSI([FromBody] Period period)
         {
             var transaction = _jobsService.Temp(period);
-            return Ok();
+            return Ok(transaction.ToString());
         }
 
         private void PrepareSource(string symbol)

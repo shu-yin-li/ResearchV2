@@ -18,7 +18,8 @@ namespace ResearchWebApi.Services
         private readonly IMapper _mapper;
         private readonly IOutputResultService _outputResultService;
         private readonly ISlidingWindowService _slidingWindowService;
-        private readonly IGNQTSAlgorithmService _qtsAlgorithmService;
+        private readonly ISMAGNQTSAlgorithmService _smaGnqtsAlgorithmService;
+        private readonly ITrailingStopGNQTSAlgorithmService _trailingStopGnqtsAlgorithmService;
         private readonly ITrainDetailsDataProvider _trainDetailsDataProvider;
         private readonly IFileHandler _fileHandler;
 
@@ -31,7 +32,8 @@ namespace ResearchWebApi.Services
             IMapper mapper,
             IOutputResultService outputResultService,
             ISlidingWindowService slidingWindowService,
-            IGNQTSAlgorithmService qtsAlgorithmService,
+            ISMAGNQTSAlgorithmService smaGnqtsAlgorithmService,
+            ITrailingStopGNQTSAlgorithmService trailingStopGnqtsAlgorithmService,
             ITrainDetailsDataProvider trainDetailsDataProvider,
             IFileHandler fileHandler)
         {
@@ -40,7 +42,8 @@ namespace ResearchWebApi.Services
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _outputResultService = outputResultService ?? throw new ArgumentNullException(nameof(outputResultService));
             _slidingWindowService = slidingWindowService ?? throw new ArgumentNullException(nameof(slidingWindowService));
-            _qtsAlgorithmService = qtsAlgorithmService ?? throw new ArgumentNullException(nameof(qtsAlgorithmService));
+            _smaGnqtsAlgorithmService = smaGnqtsAlgorithmService ?? throw new ArgumentNullException(nameof(smaGnqtsAlgorithmService));
+            _trailingStopGnqtsAlgorithmService = trailingStopGnqtsAlgorithmService ?? throw new ArgumentNullException(nameof(trailingStopGnqtsAlgorithmService));
             _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
             _fileHandler = fileHandler ?? throw new ArgumentNullException(nameof(fileHandler));
         }
@@ -240,7 +243,7 @@ namespace ResearchWebApi.Services
                 //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
 
                 var randomSource = copyCRandom.Any() ? "CRandom" : "C#";
-                var algorithmConst = _qtsAlgorithmService.GetConst();
+                var algorithmConst = _smaGnqtsAlgorithmService.GetConst();
 
                 for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
                 {
@@ -253,7 +256,7 @@ namespace ResearchWebApi.Services
                     //    gBest = (SMAStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, csv);
                     //}
                     #endregion
-                    gBest = (SMAStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
+                    gBest = (SMAStatusValue)_smaGnqtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
                     CompareSMAGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
                 }
 
@@ -346,12 +349,12 @@ namespace ResearchWebApi.Services
                 //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
 
                 var randomSource = copyCRandom.Any() ? "CRandom" : "C#";
-                var algorithmConst = _qtsAlgorithmService.GetConst();
+                var algorithmConst = _trailingStopGnqtsAlgorithmService.GetConst();
 
                 for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
                 {
                     TrailingStopStatusValue gBest;
-                    gBest = (TrailingStopStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
+                    gBest = (TrailingStopStatusValue)_trailingStopGnqtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
                     CompareTrailingStopGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
                 }
 
@@ -404,6 +407,7 @@ namespace ResearchWebApi.Services
             });
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
+
         public void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period)
         {
             List<int> range = new List<int> { 5, 6, 14 };
@@ -514,19 +518,31 @@ namespace ResearchWebApi.Services
             {
                 Funds = FUNDS,
                 Symbol = "AAPL",
-                BuyShortTermMa = 5,
-                BuyLongTermMa = 20,
+                BuyShortTermMa = 20,
+                BuyLongTermMa = 120,
                 StopPercentage = 10,
             };
-            SlidingWindow window = _slidingWindowService.GetSlidingWindows(period, PeriodEnum.H, PeriodEnum.H).First();
+
+            var testCaseSMA = new TestCaseSMA
+            {
+                Funds = FUNDS,
+                Symbol = "AAPL",
+                BuyShortTermMa = 20,
+                BuyLongTermMa = 120,
+                SellShortTermMa = 20,
+                SellLongTermMa = 120,
+            };
+
+            var strategy = StrategyType.SMA;
+            SlidingWindow window = _slidingWindowService.GetSlidingWindows(period, PeriodEnum.Y, PeriodEnum.H).First();
             var periodStart = window.TrainPeriod.Start;
             var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
             var stockList = _dataService.GetStockDataFromDb("AAPL", window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
-            var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.TrailingStop);
+            var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCaseSMA, periodStartTimeStamp, strategy);
             var currentStock = stockList.Last().Price ?? 0;
             var periodEnd = stockList.Last().Date;
-            _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
+            _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCaseSMA, transactions, periodEnd);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
             return transactions;
@@ -541,7 +557,7 @@ namespace ResearchWebApi.Services
 
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
-            var algorithmConst = _qtsAlgorithmService.GetConst();
+            var algorithmConst = strategyType == StrategyType.SMA ? _smaGnqtsAlgorithmService.GetConst() : _trailingStopGnqtsAlgorithmService.GetConst();
             slidingWindows.ForEach((window) =>
             {
                 var periodStart = window.TrainPeriod.Start;

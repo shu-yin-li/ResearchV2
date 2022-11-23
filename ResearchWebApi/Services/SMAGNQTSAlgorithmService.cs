@@ -8,7 +8,7 @@ using ResearchWebApi.Models;
 
 namespace ResearchWebApi.Services
 {
-    public class SMAGNQTSAlgorithmService: IGNQTSAlgorithmService
+    public class SMAGNQTSAlgorithmService: ISMAGNQTSAlgorithmService
     {
         private IResearchOperationService _researchOperationService;
         // GNQTS paremeters

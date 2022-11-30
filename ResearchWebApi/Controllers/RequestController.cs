@@ -118,6 +118,14 @@ namespace ResearchWebApi.Controllers
                 return Ok();
             }
 
+            if (trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
+                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
+            {
+                BackgroundJob.Enqueue(()
+                    => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
+                return Ok();
+            }
+
             return BadRequest();
         }
 

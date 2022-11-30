@@ -156,15 +156,34 @@ namespace ResearchWebApi.Services
                 var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
                 if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
                 var transNodes = trainDetails.TransactionNodes.Split(",");
-                var testCase = new TestCaseSMA {
-                    Funds = FUNDS,
-                    Symbol = symbol,
-                    Type = ResultTypeEnum.Test,
-                    BuyShortTermMa = int.Parse(transNodes[0]),
-                    BuyLongTermMa = int.Parse(transNodes[1]),
-                    SellShortTermMa = int.Parse(transNodes[2]),
-                    SellLongTermMa = int.Parse(transNodes[3]),
-                };
+
+                ITestCase testCase;
+                if (strategy == StrategyType.SMA)
+                {
+                    testCase = new TestCaseSMA
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        Type = ResultTypeEnum.Test,
+                        BuyShortTermMa = int.Parse(transNodes[0]),
+                        BuyLongTermMa = int.Parse(transNodes[1]),
+                        SellShortTermMa = int.Parse(transNodes[2]),
+                        SellLongTermMa = int.Parse(transNodes[3]),
+                    };
+                }
+                else
+                {
+                    testCase = new TestCaseTrailingStop
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        Type = ResultTypeEnum.Test,
+                        BuyShortTermMa = int.Parse(transNodes[0]),
+                        BuyLongTermMa = int.Parse(transNodes[1]),
+                        StopPercentage = int.Parse(transNodes[2])
+                    };
+                }
+                
 
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TestPeriod.Start;
@@ -176,7 +195,7 @@ namespace ResearchWebApi.Services
                 do {
                     var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End.AddDays(increasedEndDay)));
                     stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
-                    transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, StrategyType.SMA);
+                    transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
                     increasedEndDay++;
                 } while ((transactions.Count == 1 || transactions.Last().TransType == TransactionType.Buy) && stockListDto.Count != stockList.Count);
 
@@ -191,7 +210,8 @@ namespace ResearchWebApi.Services
                     PeriodStartTimeStamp = periodStartTimeStamp,
                     SlidingWindow = window,
                     Result = result,
-                    TrainDetails = trainDetails
+                    TrainDetails = trainDetails,
+                    Strategy = strategy
                 };
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);

@@ -14,7 +14,7 @@ namespace ResearchWebApi.Services
         // GNQTS paremeters
         private double DELTA = 0.00016;
         const int GENERATIONS = 10000;
-        const int SEARCH_NODE_NUMBER = 10;
+        const int SEARCH_NODE_NUMBER = 200;
         const int DIGIT_NUMBER = 8;
         const int DIGIT_NUMBER_2 = 6;
         const double RANDOM_MAX = 32767.0;

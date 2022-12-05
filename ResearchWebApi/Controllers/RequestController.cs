@@ -72,7 +72,17 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Buy == StrategyType.SMA
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
-                BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, trainParameter.IsCRandom));
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, trainParameter.IsCRandom));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
                 return Ok();
             }
 
@@ -80,7 +90,17 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
                 && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
             {
-                BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, trainParameter.IsCRandom));
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
                 return Ok();
             }
 
@@ -106,9 +126,19 @@ namespace ResearchWebApi.Controllers
             if (trainParameter.TransactionTiming.Buy == StrategyType.SMA
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
-                BackgroundJob.Enqueue(()
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(()
                     => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
-                return Ok();
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year) ;
+            return Ok();
             }
 
             if (trainParameter.TransactionTiming.Buy == StrategyType.RSI
@@ -121,8 +151,18 @@ namespace ResearchWebApi.Controllers
             if (trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
                 && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
             {
-                BackgroundJob.Enqueue(()
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(()
                     => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
                 return Ok();
             }
 

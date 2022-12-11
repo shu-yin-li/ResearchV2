@@ -589,7 +589,7 @@ namespace ResearchWebApi.Services
 
                 var currentStock = stockList.Last().Price ?? 0;
                 var periodEnd = stockList.Last().Date;
-                _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
+                //_researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
                 var results = transactions.Select(trans =>

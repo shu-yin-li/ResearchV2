@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
+using ResearchWebApi.Models.Results;
 
 namespace ResearchWebApi.Services
 {
@@ -13,17 +14,20 @@ namespace ResearchWebApi.Services
         private readonly IResearchOperationService _researchOperationService;
         private readonly IDataProvider<CommonResult> _commonResultDataProvider;
         private readonly IDataProvider<EarnResult> _earnResultDataProvider;
+        private readonly IDataProvider<StockTransactionResult> _stockTransactionResultDataProvider;
         private readonly ITrainDetailsDataProvider _trainDetailsDataProvider;
         public OutputResultService(
             IResearchOperationService researchOperationService,
             IDataProvider<CommonResult> commonResultDataProvider,
             IDataProvider<EarnResult> earnResultDataProvider,
+            IDataProvider<StockTransactionResult> stockTransactionResultDataProvider,
             ITrainDetailsDataProvider trainDetailsDataProvider
             )
         {
             _researchOperationService = researchOperationService ?? throw new ArgumentNullException(nameof(researchOperationService));
             _commonResultDataProvider = commonResultDataProvider ?? throw new ArgumentNullException(nameof(commonResultDataProvider));
             _earnResultDataProvider = earnResultDataProvider ?? throw new ArgumentNullException(nameof(earnResultDataProvider));
+            _stockTransactionResultDataProvider = stockTransactionResultDataProvider ?? throw new ArgumentNullException(nameof(stockTransactionResultDataProvider));
             _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
         }
 
@@ -210,6 +214,11 @@ namespace ResearchWebApi.Services
             }).ToList();
 
             _earnResultDataProvider.AddBatch(earnResultList);
+        }
+
+        public void UpdateStockTransactionResult(List<StockTransactionResult> stockTransactionResults)
+        {
+            _stockTransactionResultDataProvider.AddBatch(stockTransactionResults);
         }
 
         #region Private method

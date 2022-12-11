@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,7 @@ using CsvHelper;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
+using ResearchWebApi.Models.Results;
 
 namespace ResearchWebApi.Services
 {
@@ -530,6 +532,89 @@ namespace ResearchWebApi.Services
                 });
             });
             TraditionalTrain(pair, symbol, period, StrategyType.TrailingStop, testCases);
+        }
+
+        public void GetStockTransaction(SlidingWinPair pair, string algorithmName, string symbol, Period period, StrategyType strategy)
+        {
+            List<SlidingWindow> slidingWindows = pair.IsStar
+                ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
+                : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
+
+            var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
+            var stockTransactionResultList = new List<StockTransactionResult>();
+
+            slidingWindows.ForEach((window) =>
+            {
+                var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
+                var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
+                if (trainDetails == null) throw new InvalidOperationException($"{trainId} is not found.");
+                var transNodes = trainDetails.TransactionNodes.Split(",");
+
+                ITestCase testCase;
+                if (strategy == StrategyType.SMA)
+                {
+                    testCase = new TestCaseSMA
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        Type = ResultTypeEnum.Test,
+                        BuyShortTermMa = int.Parse(transNodes[0]),
+                        BuyLongTermMa = int.Parse(transNodes[1]),
+                        SellShortTermMa = int.Parse(transNodes[2]),
+                        SellLongTermMa = int.Parse(transNodes[3]),
+                    };
+                }
+                else
+                {
+                    testCase = new TestCaseTrailingStop
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        Type = ResultTypeEnum.Test,
+                        BuyShortTermMa = int.Parse(transNodes[0]),
+                        BuyLongTermMa = int.Parse(transNodes[1]),
+                        StopPercentage = int.Parse(transNodes[2])
+                    };
+                }
+
+                List<StockTransaction> transactions = new List<StockTransaction>();
+                var periodStart = window.TrainPeriod.Start;
+                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start, window.TrainPeriod.End);
+                var stockListDto = new List<StockModelDTO>();
+
+                var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End));
+                stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
+                transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
+
+                var currentStock = stockList.Last().Price ?? 0;
+                var periodEnd = stockList.Last().Date;
+                _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
+                var earns = _researchOperationService.GetEarningsResults(transactions);
+                var result = Math.Round(earns, 10);
+                var results = transactions.Select(trans =>
+                {
+                    var result = new StockTransactionResult
+                    {
+                        TrainId = trainId,
+                        SlidingWinPairName = slidingWinPairName,
+                        TransactionNodes = trainDetails.TransactionNodes,
+                        FromDateToDate = $"{window.TrainPeriod.Start} - {window.TrainPeriod.End}",
+                        Strategy = strategy,
+                        TransTime = trans.TransTime,
+                        TransTimeString = "",
+                        TransPrice = trans.TransPrice,
+                        TransType = trans.TransType,
+                        TransVolume = trans.TransVolume,
+                        Balance = trans.Balance
+                    };
+                    
+                    return result;
+                });
+                stockTransactionResultList.AddRange(results);
+            });
+
+            _outputResultService.UpdateStockTransactionResult(stockTransactionResultList);
         }
 
         public List<StockTransaction> Temp(Period period)

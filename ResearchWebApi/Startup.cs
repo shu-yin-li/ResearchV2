@@ -10,6 +10,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
+using ResearchWebApi.Models.Results;
+using ResearchWebApi.Profiles;
 using ResearchWebApi.Repository;
 using ResearchWebApi.Services;
 
@@ -54,9 +56,11 @@ namespace ResearchWebApi
             services.AddScoped<IDataProvider<EarnResult>, EarnResultDataProvider>();
             services.AddDbContextPool<TrainDetailsDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
             services.AddScoped<ITrainDetailsDataProvider, TrainDetailsDataProvider>();
+            services.AddDbContextPool<StockTransactionResultDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
+            services.AddScoped<IDataProvider<StockTransactionResult>, StockTransactionResultDataProvider>();
 
             // Hangfire
-            services.AddTransient<ScopedJobActivator>();
+            services.AddTransient<ScopedJobActivator>(); 
             services.AddHangfire((serviceProvider, config) => {
                 var scopedProvider = serviceProvider.CreateScope().ServiceProvider;
                 config
@@ -70,6 +74,7 @@ namespace ResearchWebApi
             // AutoMapper
             services.AddAutoMapper(typeof(Startup));
             services.AddAutoMapper(typeof(StockModel));
+            services.AddAutoMapper(typeof(StockProfile));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

@@ -15,6 +15,7 @@ namespace ResearchWebApi.Interface
         void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period);
         //void TrainTraditionalWithHybrid(SlidingWinPair SlidingWinPair, string symbol, Period period);
         void Test(SlidingWinPair pair, string algorithmName, string symbol, Period period, StrategyType strategy);
+        void GetStockTransaction(SlidingWinPair pair, string algorithmName, string symbol, Period period, StrategyType strategy);
         void BuyAndHold(string symbol, Period period, ResultTypeEnum resultType);
         List<StockTransaction> Temp(Period period);
     }

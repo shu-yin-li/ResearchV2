@@ -169,6 +169,15 @@ namespace ResearchWebApi.Controllers
             return BadRequest();
         }
 
+        [HttpPost("GetStockTransaction")]
+        public IActionResult GetStockTransaction([FromBody] TrainParameter trainParameter)
+        {
+            PrepareSource(trainParameter.Symbol);
+            BackgroundJob.Enqueue(()
+                    => _jobsService.GetStockTransaction(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
+            return Ok();
+        }
+
         [HttpPost("BuyAndHold")]
         public IActionResult SubmitBuyAndHoldRequests(string symbol, [FromBody] Period period)
         {

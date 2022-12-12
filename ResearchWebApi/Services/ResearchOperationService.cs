@@ -268,6 +268,7 @@ namespace ResearchWebApi.Services
                         };
                         myTransactions.Add(lastTrans);
                         hasQty = !hasQty;
+                        maxPrice = 0;
                     }
                 }
                 prevStock = stock;

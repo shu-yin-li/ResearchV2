@@ -190,7 +190,7 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TestPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start, window.TestPeriod.End.AddDays(365));
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(365));
                 var stockListDto = new List<StockModelDTO>();
                 var increasedEndDay = 1;
 
@@ -557,7 +557,7 @@ namespace ResearchWebApi.Services
                     {
                         Funds = FUNDS,
                         Symbol = symbol,
-                        Type = ResultTypeEnum.Test,
+                        Type = ResultTypeEnum.Train,
                         BuyShortTermMa = int.Parse(transNodes[0]),
                         BuyLongTermMa = int.Parse(transNodes[1]),
                         SellShortTermMa = int.Parse(transNodes[2]),
@@ -570,7 +570,7 @@ namespace ResearchWebApi.Services
                     {
                         Funds = FUNDS,
                         Symbol = symbol,
-                        Type = ResultTypeEnum.Test,
+                        Type = ResultTypeEnum.Train,
                         BuyShortTermMa = int.Parse(transNodes[0]),
                         BuyLongTermMa = int.Parse(transNodes[1]),
                         StopPercentage = int.Parse(transNodes[2])
@@ -580,11 +580,8 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start, window.TrainPeriod.End);
-                var stockListDto = new List<StockModelDTO>();
-
-                var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End));
-                stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
                 transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
 
                 var currentStock = stockList.Last().Price ?? 0;

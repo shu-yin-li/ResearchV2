@@ -16,6 +16,7 @@ namespace ResearchWebApi.Models
         public double FinalEarn { get; set; }
         public double ReturnRates { get; set; }
         public double ARR { get; set; }
+        public long ExecuteDate { get; set; } = DateTimeOffset.Now.ToUnixTimeSeconds();
 
         public EarnResult()
         {

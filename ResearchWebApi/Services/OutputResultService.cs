@@ -52,6 +52,7 @@ namespace ResearchWebApi.Services
                     ReturnRates = returnRate,
                     DayNumber = dayNumber,
                     Strategy = eachWindowResultParameter.Strategy,
+                    ExecuteDate = commonResult.ExecuteDate,
                     ARR = Math.Round(Math.Pow(dayARR + 1, 251.7) - 1, 10)
                 };
             }).ToList();
@@ -81,7 +82,8 @@ namespace ResearchWebApi.Services
                         FinalCapital = eachWindowResultParameter.Result,
                         FinalEarn = eachWindowResultParameter.Result - funds,
                         ReturnRates = returnRate,
-                        ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10)
+                        ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10),
+                        ExecuteDate = commonResult.ExecuteDate
                     };
             }).ToList();
             
@@ -142,6 +144,7 @@ namespace ResearchWebApi.Services
                         FinalEarn = eachWindowResultParameter.Result - funds,
                         ReturnRates = returnRate,
                         Strategy = eachWindowResultParameter.Strategy,
+                        ExecuteDate = commonResult.ExecuteDate,
                         ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10)
                     };
             }).ToList();
@@ -209,7 +212,7 @@ namespace ResearchWebApi.Services
                         FinalEarn = eachWindowResultParameter.Result - funds,
                         ReturnRates = returnRate,
                         Strategy = eachWindowResultParameter.Strategy,
-                        ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10)
+                        ARR = Math.Round(CalculateARR(returnRate, dayNumber) - 1, 10),
                     };
             }).ToList();
 

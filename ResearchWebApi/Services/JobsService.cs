@@ -190,16 +190,19 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TestPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(365));
-                var stockListDto = new List<StockModelDTO>();
-                var increasedEndDay = 1;
+                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
+                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
 
-                do {
-                    var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End.AddDays(increasedEndDay)));
-                    stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
-                    transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
-                    increasedEndDay++;
-                } while ((transactions.Count == 1 || transactions.Last().TransType == TransactionType.Buy) && stockListDto.Count != stockList.Count);
+                //var stockListDto = new List<StockModelDTO>();
+                //var increasedEndDay = 1;
+
+                //do {
+                //    var currentStockList = stockList.FindAll(s => s.Date < Utils.ConvertToUnixTimestamp(window.TestPeriod.End.AddDays(increasedEndDay)));
+                //    stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(currentStockList);
+                //    transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
+                //    increasedEndDay++;
+                //} while ((transactions.Count == 1 || transactions.Last().TransType == TransactionType.Buy) && stockListDto.Count != stockList.Count);
 
                 var currentStock = stockList.Last().Price ?? 0;
                 var periodEnd = stockList.Last().Date;

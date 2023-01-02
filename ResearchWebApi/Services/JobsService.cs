@@ -205,23 +205,6 @@ namespace ResearchWebApi.Services
                 //    increasedEndDay++;
                 //} while ((transactions.Count == 1 || transactions.Last().TransType == TransactionType.Buy) && stockListDto.Count != stockList.Count);
 
-                var currentStock = stockList.Last().Price ?? 0;
-                var periodEnd = stockList.Last().Date;
-                _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
-                var earns = _researchOperationService.GetEarningsResults(transactions);
-                var result = Math.Round(earns, 10);
-                var eachWindowResultParameter = new EachWindowResultParameter
-                {
-                    StockList = stockListDto,
-                    PeriodStartTimeStamp = periodStartTimeStamp,
-                    SlidingWindow = window,
-                    Result = result,
-                    TrainDetails = trainDetails,
-                    Strategy = strategy
-                };
-
-                eachWindowResultParameterList.Add(eachWindowResultParameter);
-
                 var results = transactions.Select(trans =>
                 {
                     var result = new StockTransactionResult
@@ -243,6 +226,23 @@ namespace ResearchWebApi.Services
                     return result;
                 });
                 stockTransactionResultList.AddRange(results);
+
+                var currentStock = stockList.Last().Price ?? 0;
+                var periodEnd = stockList.Last().Date;
+                _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
+                var earns = _researchOperationService.GetEarningsResults(transactions);
+                var result = Math.Round(earns, 10);
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    SlidingWindow = window,
+                    Result = result,
+                    TrainDetails = trainDetails,
+                    Strategy = strategy
+                };
+
+                eachWindowResultParameterList.Add(eachWindowResultParameter);
             });
 
             _outputResultService.UpdateGNQTSTestResultsInDb(FUNDS, eachWindowResultParameterList);

@@ -151,6 +151,7 @@ namespace ResearchWebApi.Services
 
             var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
+            var stockTransactionResultList = new List<StockTransactionResult>();
 
             slidingWindows.ForEach((window) =>
             {
@@ -220,9 +221,32 @@ namespace ResearchWebApi.Services
                 };
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);
+
+                var results = transactions.Select(trans =>
+                {
+                    var result = new StockTransactionResult
+                    {
+                        TrainId = trainId,
+                        SlidingWinPairName = slidingWinPairName,
+                        TransactionNodes = trainDetails.TransactionNodes,
+                        FromDateToDate = $"{window.TrainPeriod.Start} - {window.TrainPeriod.End}",
+                        Strategy = strategy,
+                        TransTime = trans.TransTime,
+                        TransTimeString = "",
+                        TransPrice = trans.TransPrice,
+                        TransType = trans.TransType,
+                        TransVolume = trans.TransVolume,
+                        Balance = trans.Balance,
+                        Mode = ResultTypeEnum.Test
+                    };
+
+                    return result;
+                });
+                stockTransactionResultList.AddRange(results);
             });
 
             _outputResultService.UpdateGNQTSTestResultsInDb(FUNDS, eachWindowResultParameterList);
+            _outputResultService.UpdateStockTransactionResult(stockTransactionResultList);
         }
 
         public void TrainGNQTSWithRSI(SlidingWinPair SlidingWinPair, string symbol, Period period)
@@ -274,18 +298,18 @@ namespace ResearchWebApi.Services
                 {
                     SMAStatusValue gBest;
                     #region debug
-                    //var path = Path.Combine(Environment.CurrentDirectory, $"Output/debug G best transaction exp: {e} - C random.csv");
+                    //var path = Path.Combine(Environment.CurrentDirectory, $"Output/debug G best transaction exp: {e} - {randomSource}.csv");
                     //using (var writer = new StreamWriter(path))
                     //using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture, false))
                     //{
-                    //    gBest = (SMAStatusValue)_qtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, csv);
+                    //    gBest = (SMAStatusValue)_smaGnqtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, csv);
                     //}
                     #endregion
                     gBest = (SMAStatusValue)_smaGnqtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
                     CompareSMAGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
                 }
 
-                #endregion
+                #endregion 
 
                 #region generate result
 
@@ -606,7 +630,8 @@ namespace ResearchWebApi.Services
                         TransPrice = trans.TransPrice,
                         TransType = trans.TransType,
                         TransVolume = trans.TransVolume,
-                        Balance = trans.Balance
+                        Balance = trans.Balance,
+                        Mode = ResultTypeEnum.Train
                     };
                     
                     return result;

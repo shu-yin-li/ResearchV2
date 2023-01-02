@@ -11,6 +11,7 @@ namespace ResearchWebApi.Models.Results
         public string TransactionNodes { get; set; }
         public string FromDateToDate { get; set; }
         public StrategyType Strategy { get; set; }
+        public ResultTypeEnum Mode { get; set; }
 
         public StockTransactionResult()
         {

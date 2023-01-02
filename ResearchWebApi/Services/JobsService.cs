@@ -212,7 +212,7 @@ namespace ResearchWebApi.Services
                         TrainId = trainId,
                         SlidingWinPairName = slidingWinPairName,
                         TransactionNodes = trainDetails.TransactionNodes,
-                        FromDateToDate = $"{window.TrainPeriod.Start} - {window.TrainPeriod.End}",
+                        FromDateToDate = $"{window.TestPeriod.Start} - {window.TestPeriod.End}",
                         Strategy = strategy,
                         TransTime = trans.TransTime,
                         TransTimeString = "",

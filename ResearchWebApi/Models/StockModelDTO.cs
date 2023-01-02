@@ -18,8 +18,7 @@ namespace ResearchWebApi.Models
                 .ForMember(d => d.StockName, opt => opt.MapFrom(s => s.StockName))
                 .ForMember(d => d.Date, opt => opt.MapFrom(s => s.Date))
                 .ForMember(d => d.Price, opt => opt.MapFrom(s => s.Price))
-                .ForMember(d => d.MaList, opt => opt.MapFrom(new MaListResolver()))
-                .ForMember(d => d.RsiList, opt => opt.MapFrom(new RsiListResolver()));
+                .ForMember(d => d.MaList, opt => opt.MapFrom(new MaListResolver()));
         }
     }
 

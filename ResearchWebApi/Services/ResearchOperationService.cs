@@ -138,6 +138,7 @@ namespace ResearchWebApi.Services
             StockTransaction lastTrans)
         {
             bool hasQty = false;
+            bool firstDay = true;
             StockModelDTO prevStock = stockList.FirstOrDefault();
             var testCaseSma = (TestCaseSMA)testCase;
             stockList.ForEach(stock =>
@@ -155,8 +156,11 @@ namespace ResearchWebApi.Services
                 {
                     var price = stock.Price ?? 0;
 
-                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
+                    bool testToBuy = firstDay 
+                            ? buyShortMaVal > buyLongMaVal
+                            : _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
                     bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty);
+                    firstDay = false;
 
                     if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
                     {
@@ -216,6 +220,7 @@ namespace ResearchWebApi.Services
             StockTransaction lastTrans)
         {
             bool hasQty = false;
+            bool firstDay = true;
             StockModelDTO prevStock = stockList.FirstOrDefault();
             var testCaseTrailingStop = (TestCaseTrailingStop)testCase;
             double maxPrice = 0;
@@ -231,8 +236,12 @@ namespace ResearchWebApi.Services
                 {
                     var price = stock.Price ?? 0;
 
-                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
+                    bool testToBuy = firstDay
+                            ? buyShortMaVal > buyLongMaVal
+                            : _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
                     bool testToSell = _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
+
+                    firstDay = false;
 
                     if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
                     {

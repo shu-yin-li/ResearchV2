@@ -15,6 +15,8 @@ namespace ResearchWebApi.Models
         public ResultTypeEnum Type { get; set; } = ResultTypeEnum.Train;
         public int BuyShortTermMa { get; set; }
         public int BuyLongTermMa { get; set; }
+        public int SellShortTermMa { get; set; }
+        public int SellLongTermMa { get; set; }
         public int StopPercentage { get; set; }
 
         public TestCaseTrailingStop DeepClone()
@@ -25,6 +27,8 @@ namespace ResearchWebApi.Models
                 Funds = Funds,
                 BuyShortTermMa = BuyShortTermMa,
                 BuyLongTermMa = BuyLongTermMa,
+                SellShortTermMa = SellShortTermMa,
+                SellLongTermMa = SellLongTermMa,
                 StopPercentage = StopPercentage,
             };
         }

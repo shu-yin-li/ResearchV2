@@ -72,17 +72,17 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Buy == StrategyType.SMA
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
-                //var tempYear = trainParameter.Period.Start.Year;
-                //do
-                //{
-                //    var period = new Period
-                //    {
-                //        Start = new DateTime(tempYear, 1, 1),
-                //        End = new DateTime(tempYear, 12, 31),
-                //    };
-                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, trainParameter.IsCRandom));
-                //    tempYear++;
-                //} while (tempYear <= trainParameter.Period.End.Year);
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
                 return Ok();
             }
 
@@ -126,18 +126,18 @@ namespace ResearchWebApi.Controllers
             if (trainParameter.TransactionTiming.Buy == StrategyType.SMA
                 && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
-                //var tempYear = trainParameter.Period.Start.Year;
-                //do
-                //{
-                //    var period = new Period
-                //    {
-                //        Start = new DateTime(tempYear, 1, 1),
-                //        End = new DateTime(tempYear, 12, 31),
-                //    };
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
                     BackgroundJob.Enqueue(()
-                    => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
-                //    tempYear++;
-                //} while (tempYear <= trainParameter.Period.End.Year) ;
+                    => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, period, trainParameter.TransactionTiming.Buy));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year) ;
             return Ok();
             }
 

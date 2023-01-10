@@ -160,7 +160,7 @@ namespace ResearchWebApi.Services
                     bool testToBuy = firstDay 
                             ? buyShortMaVal > buyLongMaVal
                             : _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
-                    bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, price, buyPrice, hasQty) ;
+                    bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, price, buyPrice, hasQty);
                     firstDay = false;
 
                     if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
@@ -231,10 +231,14 @@ namespace ResearchWebApi.Services
             {
                 var buyShortMaVal = stock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
                 var buyLongMaVal = stock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null;
+                var sellShortMa = stock.MaList[testCaseTrailingStop.SellShortTermMa] ?? null;
+                var sellLongMaVal = stock.MaList[testCaseTrailingStop.SellLongTermMa] ?? null;
                 var trailingStopPercentage = testCaseTrailingStop.StopPercentage;
 
                 var prevBuyShortMa = prevStock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
                 var prevBuyLongMaVal = prevStock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null;
+                var prevSellShortMaVal = prevStock.MaList[testCaseTrailingStop.SellShortTermMa] ?? null;
+                var prevSellLongMaVal = prevStock.MaList[testCaseTrailingStop.SellLongTermMa] ?? null;
                 if (stock.Date > periodStartTimeStamp)
                 {
                     var price = stock.Price ?? 0;
@@ -242,7 +246,8 @@ namespace ResearchWebApi.Services
                     bool testToBuy = firstDay
                             ? buyShortMaVal > buyLongMaVal
                             : _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
-                    bool testToSell = _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
+                    bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty)
+                                      || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
 
                     firstDay = false;
 

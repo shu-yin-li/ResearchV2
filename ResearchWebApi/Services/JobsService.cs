@@ -183,7 +183,9 @@ namespace ResearchWebApi.Services
                         Type = ResultTypeEnum.Test,
                         BuyShortTermMa = int.Parse(transNodes[0]),
                         BuyLongTermMa = int.Parse(transNodes[1]),
-                        StopPercentage = int.Parse(transNodes[2])
+                        SellShortTermMa = int.Parse(transNodes[2]),
+                        SellLongTermMa = int.Parse(transNodes[3]),
+                        StopPercentage = int.Parse(transNodes[4])
                     };
                 }
                 
@@ -540,6 +542,8 @@ namespace ResearchWebApi.Services
                         Symbol = symbol,
                         BuyShortTermMa = ma1,
                         BuyLongTermMa = ma2,
+                        SellShortTermMa = ma1,
+                        SellLongTermMa = ma2,
                         StopPercentage = trailingStop,
                     });
                 });
@@ -554,6 +558,8 @@ namespace ResearchWebApi.Services
                         Symbol = symbol,
                         BuyShortTermMa = ma1,
                         BuyLongTermMa = ma2,
+                        SellShortTermMa = ma1,
+                        SellLongTermMa = ma2,
                         StopPercentage = trailingStop,
                     });
                 });
@@ -600,7 +606,9 @@ namespace ResearchWebApi.Services
                         Type = ResultTypeEnum.Train,
                         BuyShortTermMa = int.Parse(transNodes[0]),
                         BuyLongTermMa = int.Parse(transNodes[1]),
-                        StopPercentage = int.Parse(transNodes[2])
+                        SellShortTermMa = int.Parse(transNodes[2]),
+                        SellLongTermMa = int.Parse(transNodes[3]),
+                        StopPercentage = int.Parse(transNodes[4])
                     };
                 }
 
@@ -650,6 +658,8 @@ namespace ResearchWebApi.Services
                 Symbol = "AAPL",
                 BuyShortTermMa = 20,
                 BuyLongTermMa = 120,
+                SellShortTermMa = 20,
+                SellLongTermMa = 120,
                 StopPercentage = 10,
             };
 

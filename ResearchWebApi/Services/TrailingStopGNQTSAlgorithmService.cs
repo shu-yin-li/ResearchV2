@@ -211,6 +211,22 @@ namespace ResearchWebApi.Services
             csv.WriteField("");
 
             str = string.Empty;
+            p.SellMa1Beta.ForEach(digit =>
+            {
+                str += $"{digit},";
+            });
+            csv.WriteField(str);
+            csv.WriteField("");
+
+            str = string.Empty;
+            p.SellMa2Beta.ForEach(digit =>
+            {
+                str += $"{digit},";
+            });
+            csv.WriteField(str);
+            csv.WriteField("");
+
+            str = string.Empty;
             p.StopPercentageBeta.ForEach(digit =>
             {
                 str += $"{digit},";
@@ -235,6 +251,22 @@ namespace ResearchWebApi.Services
                 str += $"{digit}";
             });
             csv.WriteField($"{Utils.GetMaNumber(current.BuyMa2)} ({str})");
+            csv.WriteField("");
+
+            str = string.Empty;
+            current.SellMa1.ForEach(digit =>
+            {
+                str += $"{digit}";
+            });
+            csv.WriteField($"{Utils.GetMaNumber(current.SellMa1)} ({str})");
+            csv.WriteField("");
+
+            str = string.Empty;
+            current.SellMa2.ForEach(digit =>
+            {
+                str += $"{digit}";
+            });
+            csv.WriteField($"{Utils.GetMaNumber(current.SellMa2)} ({str})");
             csv.WriteField("");
 
             str = string.Empty;
@@ -312,6 +344,24 @@ namespace ResearchWebApi.Services
                 {
                     p.BuyMa2Beta[index] = Math.Round(p.BuyMa2Beta[index] - DELTA, deltaDigitNum);
                 }
+                // SellMa1
+                if (gBest.SellMa1[index] > localWorst.SellMa1[index])
+                {
+                    p.SellMa1Beta[index] = Math.Round(p.SellMa1Beta[index] + DELTA, deltaDigitNum);
+                }
+                else if (gBest.SellMa1[index] < localWorst.SellMa1[index])
+                {
+                    p.SellMa1Beta[index] = Math.Round(p.SellMa1Beta[index] - DELTA, deltaDigitNum);
+                }
+                // SellMa2
+                if (gBest.SellMa2[index] > localWorst.SellMa2[index])
+                {
+                    p.SellMa2Beta[index] = Math.Round(p.SellMa2Beta[index] + DELTA, deltaDigitNum);
+                }
+                else if (gBest.SellMa2[index] < localWorst.SellMa2[index])
+                {
+                    p.SellMa2Beta[index] = Math.Round(p.SellMa2Beta[index] - DELTA, deltaDigitNum);
+                }
                 // Stop Percentage
                 if (index >= DIGIT_NUMBER_2) continue;
                 if (gBest.StopPercentage[index] > localWorst.StopPercentage[index])
@@ -346,6 +396,19 @@ namespace ResearchWebApi.Services
                     || (gBest.BuyMa2[index] < localWorst.BuyMa2[index] && p.BuyMa2Beta[index] > 0.5))
                 {
                     p.BuyMa2Beta[index] = Math.Round(1 - p.BuyMa2Beta[index], deltaDigitNum);
+                }
+                // SellMa1
+                if ((gBest.SellMa1[index] > localWorst.SellMa1[index] && p.SellMa1Beta[index] < 0.5)
+                    || (gBest.SellMa1[index] < localWorst.SellMa1[index] && p.SellMa1Beta[index] > 0.5))
+                {
+                    p.SellMa1Beta[index] = Math.Round(1 - p.SellMa1Beta[index], deltaDigitNum);
+                }
+
+                // SellMa2
+                if ((gBest.SellMa2[index] > localWorst.SellMa2[index] && p.SellMa2Beta[index] < 0.5)
+                    || (gBest.SellMa2[index] < localWorst.SellMa2[index] && p.SellMa2Beta[index] > 0.5))
+                {
+                    p.SellMa2Beta[index] = Math.Round(1 - p.SellMa2Beta[index], deltaDigitNum);
                 }
                 if (index >= DIGIT_NUMBER_2) continue;
                 // StopPercentage
@@ -383,6 +446,24 @@ namespace ResearchWebApi.Services
                         currentFitness.BuyMa2.Add(x >= random.NextDouble() ? 1 : 0);
                 });
 
+                currentFitness.SellMa1 = new List<int>();
+                p.SellMa1Beta.ForEach((x) =>
+                {
+                    if (isCrandom)
+                        currentFitness.SellMa1.Add(x >= cRandom.Dequeue() / RANDOM_MAX ? 1 : 0);
+                    else
+                        currentFitness.SellMa1.Add(x >= random.NextDouble() ? 1 : 0);
+                });
+
+                currentFitness.SellMa2 = new List<int>();
+                p.SellMa2Beta.ForEach((x) =>
+                {
+                    if (isCrandom)
+                        currentFitness.SellMa2.Add(x >= cRandom.Dequeue() / RANDOM_MAX ? 1 : 0);
+                    else
+                        currentFitness.SellMa2.Add(x >= random.NextDouble() ? 1 : 0);
+                });
+
                 currentFitness.StopPercentage = new List<int>();
                 p.StopPercentageBeta.ForEach((x) =>
                 {
@@ -395,12 +476,16 @@ namespace ResearchWebApi.Services
 
                 var buyMa1 = Utils.GetMaNumber(currentFitness.BuyMa1);
                 var buyMa2 = Utils.GetMaNumber(currentFitness.BuyMa2);
+                var sellMa1 = Utils.GetMaNumber(currentFitness.SellMa1);
+                var sellMa2 = Utils.GetMaNumber(currentFitness.SellMa2);
                 var stopPct = Utils.GetMaNumber(currentFitness.StopPercentage);
                 p.TestCase = new TestCaseTrailingStop
                 {
                     Funds = funds,
                     BuyShortTermMa = buyMa1,
                     BuyLongTermMa = buyMa2,
+                    SellShortTermMa = sellMa1,
+                    SellLongTermMa = sellMa2,
                     StopPercentage = stopPct,
                 };
             });

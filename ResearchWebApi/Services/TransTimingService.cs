@@ -83,6 +83,14 @@ namespace ResearchWebApi.Services
             }
         }
 
+        // 死亡交叉 + 一般停損
+        public bool TimeToSell(double? shortMaVal, double? longMaVal, double? prevShortMaVal, double? prevLongMaVal, double currentPrice, double buyPrice, bool hasQty)
+        {
+            var check = prevShortMaVal >= prevLongMaVal;
+            var stop = buyPrice != 0 && currentPrice < buyPrice * 0.9;
+            return (shortMaVal < longMaVal && check || stop) && hasQty == true;
+        }
+
         // 移動停損
         public bool TimeToSell(StockTransaction lastTrans, ref double maxPrice, double currentPrice,
             double currentTime, double sellPct, bool hasQty)

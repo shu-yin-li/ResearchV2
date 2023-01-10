@@ -11,6 +11,7 @@ namespace ResearchWebApi.Interface
         bool TimeToBuy(decimal rsi, decimal prevRsi, int overBuy, bool hasQty);
         bool TimeToSell(double? shortMaVal, double? longMaVal, double? prevShortMaVal, double? prevLongMaVal, bool hasQty);
         bool TimeToSell(double currentPrice, double buyPrice, double sellPct, bool hasQty);
+        bool TimeToSell(double? shortMaVal, double? longMaVal, double? prevShortMaVal, double? prevLongMaVal, double currentPrice, double buyPrice, bool hasQty);
         bool TimeToSell(StockTransaction lastTrans, ref double maxPrice, double currentPrice, double currentTime, double sellPct, bool hasQty);
         bool TimeToSell(decimal rsi, decimal prevRsi, int overBuy, bool hasQty);
     }

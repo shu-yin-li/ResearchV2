@@ -656,9 +656,9 @@ namespace ResearchWebApi.Services
             {
                 Funds = FUNDS,
                 Symbol = "AAPL",
-                BuyShortTermMa = 60,
+                BuyShortTermMa = 20,
                 BuyLongTermMa = 120,
-                SellShortTermMa = 60,
+                SellShortTermMa = 20,
                 SellLongTermMa = 120,
                 StopPercentage = 10,
             };
@@ -667,14 +667,14 @@ namespace ResearchWebApi.Services
             {
                 Funds = FUNDS,
                 Symbol = "AAPL",
-                BuyShortTermMa = 60,
+                BuyShortTermMa = 20,
                 BuyLongTermMa = 120,
-                SellShortTermMa = 60,
+                SellShortTermMa = 20,
                 SellLongTermMa = 120,
             };
 
             var strategy = StrategyType.SMA;
-            SlidingWindow window = _slidingWindowService.GetSlidingWindows(period, PeriodEnum.H, PeriodEnum.M).First();
+            SlidingWindow window = _slidingWindowService.GetSlidingWindows(period, PeriodEnum.Y, PeriodEnum.H).First();
             var periodStart = window.TrainPeriod.Start;
             var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
             var stockList = _dataService.GetStockDataFromDb("AAPL", window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
@@ -685,29 +685,6 @@ namespace ResearchWebApi.Services
             _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCaseSMA, transactions, periodEnd);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
-            var stockTransactionResultList = new List<StockTransactionResult>();
-            var results = transactions.Select(trans =>
-            {
-                var result = new StockTransactionResult
-                {
-                    TrainId = "0111_test",
-                    SlidingWinPairName = "",
-                    TransactionNodes = $"{testCase.BuyShortTermMa}, {testCase.BuyLongTermMa}, {testCase.SellShortTermMa}, {testCase.SellLongTermMa}, {testCase.StopPercentage}",
-                    FromDateToDate = $"{window.TrainPeriod.Start} - {window.TrainPeriod.End}",
-                    Strategy = strategy,
-                    TransTime = trans.TransTime,
-                    TransTimeString = "",
-                    TransPrice = trans.TransPrice,
-                    TransType = trans.TransType,
-                    TransVolume = trans.TransVolume,
-                    Balance = trans.Balance,
-                    Mode = ResultTypeEnum.Test
-                };
-
-                return result;
-            });
-            stockTransactionResultList.AddRange(results);
-            _outputResultService.UpdateStockTransactionResult(stockTransactionResultList);
             return transactions;
         }
         #region Private method

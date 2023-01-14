@@ -67,8 +67,20 @@ namespace ResearchWebApi.Services
         // 一般停損
         public bool TimeToSell(double currentPrice, double buyPrice, double sellPct, bool hasQty)
         {
+            if (!hasQty)
+            {
+                return false;
+            }
             var lossPrice = buyPrice * (100 - sellPct) / 100;
-            return buyPrice != 0 && currentPrice < lossPrice && hasQty;            
+            var earnPrice = buyPrice * (100 + sellPct) / 100;
+            if (currentPrice <= lossPrice || currentPrice >= earnPrice)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         // 死亡交叉 + 一般停損
@@ -76,7 +88,7 @@ namespace ResearchWebApi.Services
         {
             var check = prevShortMaVal >= prevLongMaVal;
             var stop = buyPrice != 0 && currentPrice < buyPrice * 0.9;
-            return (shortMaVal < longMaVal && check || stop) && hasQty;
+            return (shortMaVal < longMaVal && check || stop) && hasQty == true;
         }
 
         // 移動停損

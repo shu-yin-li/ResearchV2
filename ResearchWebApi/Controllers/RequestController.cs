@@ -39,28 +39,80 @@ namespace ResearchWebApi.Controllers
         }
 
         [HttpPost("Train")]
-        public IActionResult SubmitTrainRequests([FromBody] TrainParameter trainParameter, bool AllTrain)
+        public IActionResult SubmitTrainRequests([FromBody] TrainParameter trainParameter)
         {
             PrepareSource(trainParameter.Symbol);
-            var returnValue = true;
-            if (AllTrain)
+            if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.SMA
+                && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
             {
-                foreach(var pair in Utils.Get13TraditionalSlidingWindows())
+                BackgroundJob.Enqueue(()
+                    => _jobsService.TrainTraditionalWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
+                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
+            {
+                BackgroundJob.Enqueue(()
+                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.RSI
+                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
+            {
+                BackgroundJob.Enqueue(() => _jobsService.TrainTraditionalWithRSI(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
+                return Ok();
+            }
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.SMA
+                && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
+            {
+                var tempYear = trainParameter.Period.Start.Year;
+                do
                 {
-                    trainParameter.SlidingWinPair = pair;
-                    var r = SubmitTrainJobs(trainParameter);
-                    if (!r)
+                    var period = new Period
                     {
-                        returnValue = r;
-                        break;
-                    }
-                };
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
+                return Ok();
             }
-            else
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
+                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
             {
-                returnValue = SubmitTrainJobs(trainParameter);
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1),
+                        End = new DateTime(tempYear, 12, 31),
+                    };
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
+                return Ok();
             }
-            return SubmitTrainJobs(trainParameter) ? Ok() : BadRequest();
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.RSI
+                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
+            {
+                BackgroundJob.Enqueue(() => Console.WriteLine("GNQTS RSI"));
+                return Ok();
+            }
+
+            return BadRequest();
         }
 
         [HttpPost("Test")]
@@ -152,80 +204,6 @@ namespace ResearchWebApi.Controllers
             _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
 
             _stockModelDataProvider.AddBatch(indicatorStockList);
-        }
-
-        private bool SubmitTrainJobs(TrainParameter trainParameter)
-        {
-            if (trainParameter.MaSelection == MaSelection.Traditional
-                    && trainParameter.TransactionTiming.Buy == StrategyType.SMA
-                    && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
-            {
-                BackgroundJob.Enqueue(()
-                    => _jobsService.TrainTraditionalWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
-                return true;
-            }
-
-            if (trainParameter.MaSelection == MaSelection.Traditional
-                && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
-                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
-            {
-                BackgroundJob.Enqueue(()
-                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
-                return true;
-            }
-
-            if (trainParameter.MaSelection == MaSelection.Traditional
-                && trainParameter.TransactionTiming.Buy == StrategyType.RSI
-                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
-            {
-                BackgroundJob.Enqueue(() => _jobsService.TrainTraditionalWithRSI(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
-                return true;
-            }
-
-            if (trainParameter.MaSelection == MaSelection.GNQTS
-                && trainParameter.TransactionTiming.Buy == StrategyType.SMA
-                && trainParameter.TransactionTiming.Sell == StrategyType.SMA)
-            {
-                var tempYear = trainParameter.Period.Start.Year;
-                do
-                {
-                    var period = new Period
-                    {
-                        Start = new DateTime(tempYear, 1, 1),
-                        End = new DateTime(tempYear, 12, 31),
-                    };
-                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
-                    tempYear++;
-                } while (tempYear <= trainParameter.Period.End.Year);
-                return true;
-            }
-
-            if (trainParameter.MaSelection == MaSelection.GNQTS
-                && trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
-                && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
-            {
-                var tempYear = trainParameter.Period.Start.Year;
-                do
-                {
-                    var period = new Period
-                    {
-                        Start = new DateTime(tempYear, 1, 1),
-                        End = new DateTime(tempYear, 12, 31),
-                    };
-                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
-                    tempYear++;
-                } while (tempYear <= trainParameter.Period.End.Year);
-                return true;
-            }
-
-            if (trainParameter.MaSelection == MaSelection.GNQTS
-                && trainParameter.TransactionTiming.Buy == StrategyType.RSI
-                && trainParameter.TransactionTiming.Sell == StrategyType.RSI)
-            {
-                BackgroundJob.Enqueue(() => Console.WriteLine("GNQTS RSI"));
-                return true;
-            }
-            return false;
         }
     }
 }

@@ -60,7 +60,7 @@ namespace ResearchWebApi.Controllers
             {
                 returnValue = SubmitTrainJobs(trainParameter);
             }
-            return SubmitTrainJobs(trainParameter) ? Ok() : BadRequest();
+            return SubmitTrainJobs(trainParameter) ? (IActionResult)Ok() : (IActionResult)BadRequest();
         }
 
         [HttpPost("Test")]

@@ -442,6 +442,8 @@ namespace ResearchWebApi.Services
                             Symbol = symbol,
                             BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
                             BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                            SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
+                            SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2),
                             StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
                         };
                     trainDetailsParameter.ExperimentNumberOfBest = bestGbest.Experiment;
@@ -819,6 +821,8 @@ namespace ResearchWebApi.Services
                 {
                     BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
                     BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                    SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
+                    SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2),
                     StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
                 });
             }

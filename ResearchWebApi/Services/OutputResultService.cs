@@ -104,7 +104,9 @@ namespace ResearchWebApi.Services
                 else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
                 {
                     var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
-                    transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa},{testCaseTrailingStop.StopPercentage}";
+                    transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa}," +
+                                       $"{testCaseTrailingStop.SellShortTermMa},{testCaseTrailingStop.SellLongTermMa}," +
+                                       $"{testCaseTrailingStop.StopPercentage}";
                 }
 
                 return new TrainDetails
@@ -168,7 +170,9 @@ namespace ResearchWebApi.Services
                 else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
                 {
                     var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
-                    transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa},{testCaseTrailingStop.StopPercentage}";
+                    transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa}," +
+                                       $"{testCaseTrailingStop.SellShortTermMa},{testCaseTrailingStop.SellLongTermMa}," +
+                                       $"{testCaseTrailingStop.StopPercentage}";
                 }
                 return new TrainDetails
                 {

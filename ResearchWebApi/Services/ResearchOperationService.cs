@@ -226,7 +226,7 @@ namespace ResearchWebApi.Services
             bool firstDay = true;
             StockModelDTO prevStock = stockList.FirstOrDefault();
             var testCaseTrailingStop = (TestCaseTrailingStop)testCase;
-            double buyPrice = 0;
+            double maxPrice = 0;
             stockList.ForEach(stock =>
             {
                 var buyShortMaVal = stock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
@@ -247,13 +247,13 @@ namespace ResearchWebApi.Services
                             ? buyShortMaVal > buyLongMaVal
                             : _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
                     bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty)
-                                      || _transTimingService.TimeToSell(price, buyPrice, trailingStopPercentage, hasQty);
+                                        || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
+                    
 
                     firstDay = false;
 
                     if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
                     {
-                        buyPrice = price;
                         var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
                         lastTrans = new StockTransactionSMA
                         {
@@ -286,7 +286,7 @@ namespace ResearchWebApi.Services
                         };
                         myTransactions.Add(lastTrans);
                         hasQty = !hasQty;
-                        buyPrice = 0;
+                        maxPrice = 0;
                     }
                 }
                 prevStock = stock;

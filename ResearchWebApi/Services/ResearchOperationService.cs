@@ -316,7 +316,9 @@ namespace ResearchWebApi.Services
                     bool testToBuy = _transTimingService.TimeToBuy(rsi, prevRsi, testCaseRsi.OverSold, hasQty);
                     bool testToSell = _transTimingService.TimeToSell(rsi, prevRsi, testCaseRsi.OverBought, hasQty);
 
-                    if (rsi != null && testToBuy)
+                    if (
+                    //rsi != null &&
+                    testToBuy)
                     {
                         var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
                         lastTrans = new StockTransaction
@@ -331,7 +333,9 @@ namespace ResearchWebApi.Services
                         hasQty = !hasQty;
                     }
                     // Note: 注意現在是用哪一種時機點
-                    else if (rsi != null && testToSell)
+                    else if (
+                    //rsi != null &&
+                    testToSell)
                     {
                         var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
                         lastTrans = new StockTransaction

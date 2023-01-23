@@ -66,7 +66,7 @@ namespace ResearchWebApi.Services
 
             MetureX(cRandom, random, particles, funds);
 
-            var index = 0;
+            //var index = 0;
             particles.ForEach((p) =>
             {
                 p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp, strategyType);

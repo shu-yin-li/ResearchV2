@@ -23,6 +23,13 @@ namespace ResearchWebApi.Services
             return check;
         }
 
+        // 乖離率檢查（買入＋負乖離）
+        public bool TimeToBuyCheckingByBias(double currentPrice, double? shortMaVal)
+        {
+            if (shortMaVal == null) return false;
+            return currentPrice < shortMaVal;
+        }
+
         // 黃金交叉
         public bool TimeToBuy(double? shortMaVal, double? longMaVal, double? prevShortMaVal, double? prevLongMaVal, bool hasQty)
         {
@@ -55,6 +62,13 @@ namespace ResearchWebApi.Services
         {
             var check = prevRsi >= overSell;
             return rsi < overSell && hasQty == false && check;
+        }
+
+        // 乖離率檢查（賣出＋正乖離）
+        public bool TimeToSellCheckingByBias(double currentPrice, double? shortMaVal)
+        {
+            if (shortMaVal == null) return false;
+            return currentPrice > shortMaVal;
         }
 
         // 死亡交叉

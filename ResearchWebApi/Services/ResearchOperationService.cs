@@ -244,11 +244,11 @@ namespace ResearchWebApi.Services
                     var price = stock.Price ?? 0;
 
                     bool testToBuy = firstDay
-                            ? buyShortMaVal > buyLongMaVal
+                            ? _transTimingService.TimeToBuyCheckingByBias(price, buyShortMaVal) && buyShortMaVal > buyLongMaVal
                             : _transTimingService.TimeToBuyCheckingByBias(price, buyShortMaVal) && _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
-                    bool testToSell = _transTimingService.TimeToSellCheckingByBias(price, buyShortMaVal) &&
-                                        (_transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty)
-                                        || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty));
+                    bool testToSell = (_transTimingService.TimeToSellCheckingByBias(price, buyShortMaVal) &&
+                                        _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty))
+                                        || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
 
                     firstDay = false;
 

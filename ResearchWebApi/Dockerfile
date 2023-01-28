@@ -1,8 +1,8 @@
-FROM mcr.microsoft.com/dotnet/aspnet:3.1-alpine3.16 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /src
 EXPOSE 80
 
-FROM mcr.microsoft.com/dotnet/sdk:3.1-alpine3.16 AS build
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore ResearchWebApi.csproj

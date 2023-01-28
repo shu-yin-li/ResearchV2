@@ -61,13 +61,12 @@ namespace ResearchWebApi.Services
                 var stockListAll = _dataService.GetStockDataFromDb(symbol, windowPeriod.Start, windowPeriod.End.AddDays(1));
                 #region get first and last 7 stock model from all
 
-                var stockList = stockListAll.Take(7).ToList();
+                var stockListDto = stockListAll.Take(7).ToList();
                 stockListAll.Reverse();
                 var stockListEnd = stockListAll.Take(7).Reverse();
-                stockList.AddRange(stockListEnd);
+                stockListDto.AddRange(stockListEnd);
 
                 #endregion
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
                 var transactions = _researchOperationService.GetBuyAndHoldTransactions(stockListDto, FUNDS);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
@@ -91,13 +90,12 @@ namespace ResearchWebApi.Services
             var stockListAll = _dataService.GetStockDataFromDb(symbol, period.Start, period.End.AddDays(1));
             #region get first and last 7 stock model from all
 
-            var stockList = stockListAll.Take(7).ToList();
+            var stockListDto = stockListAll.Take(7).ToList();
             stockListAll.Reverse();
             var stockListEnd = stockListAll.Take(7).Reverse();
-            stockList.AddRange(stockListEnd);
+            stockListDto.AddRange(stockListEnd);
 
             #endregion
-            var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
             var transactions = _researchOperationService.GetBuyAndHoldTransactions(stockListDto, FUNDS);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
@@ -193,8 +191,7 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TestPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
                 transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
 
                 //var stockListDto = new List<StockModelDTO>();
@@ -229,8 +226,8 @@ namespace ResearchWebApi.Services
                 });
                 stockTransactionResultList.AddRange(results);
 
-                var currentStock = stockList.Last().Price ?? 0;
-                var periodEnd = stockList.Last().Date;
+                var currentStock = stockListDto.Last().Price ?? 0;
+                var periodEnd = stockListDto.Last().Date;
                 _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
@@ -274,6 +271,7 @@ namespace ResearchWebApi.Services
 
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
+         
             slidingWindows.ForEach((window) =>
             {
                 var periodStart = window.TrainPeriod.Start;
@@ -286,8 +284,7 @@ namespace ResearchWebApi.Services
                 // 用這邊在控制取fitness/transaction的日期區間
                 // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
                 // +1 是為了時差 取正確的最後一天
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var bestGbestList = new List<ITestCase>();
                 var bestGbest = new SMAStatusValue();
                 int gBestCount = 0;
@@ -311,7 +308,7 @@ namespace ResearchWebApi.Services
                     CompareSMAGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
                 }
 
-                #endregion 
+                #endregion
 
                 #region generate result
 
@@ -357,8 +354,8 @@ namespace ResearchWebApi.Services
                 trainDetailsParameterList.Add(trainDetailsParameter);
 
                 #endregion
-
             });
+
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
@@ -392,8 +389,7 @@ namespace ResearchWebApi.Services
                 // 用這邊在控制取fitness/transaction的日期區間
                 // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
                 // +1 是為了時差 取正確的最後一天
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var bestGbestList = new List<ITestCase>();
                 var bestGbest = new TrailingStopStatusValue();
                 int gBestCount = 0;
@@ -617,12 +613,11 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
 
-                var currentStock = stockList.Last().Price ?? 0;
-                var periodEnd = stockList.Last().Date;
+                var currentStock = stockListDto.Last().Price ?? 0;
+                var periodEnd = stockListDto.Last().Date;
                 //_researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
@@ -679,11 +674,10 @@ namespace ResearchWebApi.Services
             SlidingWindow window = _slidingWindowService.GetSlidingWindows(period, PeriodEnum.H, PeriodEnum.M).First();
             var periodStart = window.TrainPeriod.Start;
             var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-            var stockList = _dataService.GetStockDataFromDb("AAPL", window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+            var stockListDto = _dataService.GetStockDataFromDb("AAPL", window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
             var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCaseSMA, periodStartTimeStamp, strategy);
-            var currentStock = stockList.Last().Price ?? 0;
-            var periodEnd = stockList.Last().Date;
+            var currentStock = stockListDto.Last().Price ?? 0;
+            var periodEnd = stockListDto.Last().Date;
             _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCaseSMA, transactions, periodEnd);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
@@ -728,8 +722,7 @@ namespace ResearchWebApi.Services
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
 
-                var stockList = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
-                var stockListDto = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
 
                 var eachWindowResultParameter = new EachWindowResultParameter
                 {
@@ -750,8 +743,8 @@ namespace ResearchWebApi.Services
                 testCases.ForEach(testCase =>
                 {
                     var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategyType);
-                    var currentStock = stockList.Last().Price ?? 0;
-                    var periodEnd = stockList.Last().Date;
+                    var currentStock = stockListDto.Last().Price ?? 0;
+                    var periodEnd = stockListDto.Last().Date;
                     _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
                     var earns = _researchOperationService.GetEarningsResults(transactions);
                     var result = Math.Round(earns, 10);

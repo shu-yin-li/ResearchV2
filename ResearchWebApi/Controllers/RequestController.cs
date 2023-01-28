@@ -24,6 +24,10 @@ namespace ResearchWebApi.Controllers
             Start = new DateTime(2012, 1, 1, 0, 0, 0),
             End = new DateTime(2021, 12, 31, 0, 0, 0)
         };
+        private List<string> _defaultSymbols = new List<string> { "^DJI", "^INX", "^IXIC", "^NYA", "AAPL", "AMGN", "AXP", "BA", "CAT", "CRM", "CSCO", "CVX",
+                                                                    "DD", "DIS", "GS", "HD", "HON", "IBM", "INTC", "JNJ", "JPM", "KO", "MCD", "MMM", "MRK",
+                                                                    "MSFT", "NKE", "PG", "TRV", "UNH", "V", "VZ","WBA", "WMT"};
+
         public RequestController(
             IJobsService jobsService,
             IIndicatorCalulationService movingAvarageService,

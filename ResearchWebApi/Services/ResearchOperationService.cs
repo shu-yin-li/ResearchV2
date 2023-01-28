@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
@@ -140,12 +141,18 @@ namespace ResearchWebApi.Services
             bool hasQty = false;
             StockModelDTO prevStock = stockList.FirstOrDefault();
             var testCaseSma = (TestCaseSMA)testCase;
+            Stopwatch GetFromListsw = new Stopwatch();
+            var swList = new List<string>();
+
             stockList.ForEach(stock =>
             {
+                    GetFromListsw.Start();
                 var buyShortMaVal = stock.MaList[testCaseSma.BuyShortTermMa] ?? null;
                 var buyLongMaVal = stock.MaList[testCaseSma.BuyLongTermMa] ?? null;
                 var sellShortMa = stock.MaList[testCaseSma.SellShortTermMa] ?? null;
                 var sellLongMaVal = stock.MaList[testCaseSma.SellLongTermMa] ?? null;
+                    GetFromListsw.Stop();
+                    swList.Add($" GetFromList {GetFromListsw.Elapsed.TotalMilliseconds * 1000:n3}μs");
 
                 var prevBuyShortMa = prevStock.MaList[testCaseSma.BuyShortTermMa] ?? null;
                 var prevBuyLongMaVal = prevStock.MaList[testCaseSma.BuyLongTermMa] ?? null;

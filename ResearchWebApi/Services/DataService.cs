@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using AutoMapper;
 using Newtonsoft.Json;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
@@ -12,9 +13,12 @@ namespace ResearchWebApi.Services
     public class DataService: IDataService
     {
         IStockModelDataProvider _stockModeldataProvider;
-        public DataService(IStockModelDataProvider stockModeldataProvider)
+        private readonly IMapper _mapper;
+
+        public DataService(IStockModelDataProvider stockModeldataProvider, IMapper mapper)
         {
             _stockModeldataProvider = stockModeldataProvider ?? throw new ArgumentNullException(nameof(stockModeldataProvider));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
         public static double ConvertToUnixTimestamp(DateTime date)
@@ -88,10 +92,10 @@ namespace ResearchWebApi.Services
             return responseFromServer;
         }
 
-        public List<StockModel> GetStockDataFromDb(string stockSymbol, DateTime period1, DateTime period2)
+        public List<StockModelDTO> GetStockDataFromDb(string stockSymbol, DateTime period1, DateTime period2)
         {
             var stockModels = _stockModeldataProvider.Find(stockSymbol, period1, period2);
-            return stockModels.OrderBy(e => e.Date).ToList();
+            return _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockModels.OrderBy(e => e.Date).ToList());
         }
     }
 }

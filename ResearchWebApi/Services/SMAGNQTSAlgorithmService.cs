@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using CsvHelper;
 using ResearchWebApi.Enums;
@@ -111,7 +112,7 @@ namespace ResearchWebApi.Services
             {
                 UpdateProbability(p, gBest, localWorst);
             });
-
+            
             //#region debug
 
             //csv.WriteField("beta matrix");
@@ -130,7 +131,6 @@ namespace ResearchWebApi.Services
                 //#endregion
                 MetureX(cRandom, random, particles, funds);
                 //index = 0;
-
                 particles.ForEach((p) =>
                 {
                     p.CurrentFitness.Fitness = GetFitness(p.TestCase, stockList, periodStartTimeStamp, strategyType);
@@ -144,7 +144,6 @@ namespace ResearchWebApi.Services
 
                     //#endregion
                 });
-                
 
                 hasAnyTransaction = particles.FindAll(p => p.CurrentFitness.Fitness - funds != 0).Any();
 
@@ -175,9 +174,7 @@ namespace ResearchWebApi.Services
                 particles.ForEach((p) =>
                 {
                     UpdateProbability(p, gBest, localWorst);
-                    
                 });
-
                 //#region debug
 
                 //csv.WriteField("beta matrix");
@@ -186,7 +183,6 @@ namespace ResearchWebApi.Services
 
                 //#endregion
             }
-
             return gBest;
         }
 
@@ -457,13 +453,13 @@ namespace ResearchWebApi.Services
             double periodStartTimeStamp,
             StrategyType strategyType)
         {
-            
             var transactions = _researchOperationService.GetMyTransactions(stockList, currentTestCase, periodStartTimeStamp, strategyType);
             var currentStock = stockList.Last().Price ?? 0;
             var periodEnd = stockList.Last().Date;
             _researchOperationService.ProfitSettlement(currentStock, stockList, currentTestCase, transactions, periodEnd);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
+
             return result;
         }
     }

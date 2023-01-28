@@ -74,7 +74,6 @@ namespace ResearchWebApi
             // AutoMapper
             services.AddAutoMapper(typeof(Startup));
             services.AddAutoMapper(typeof(StockModel));
-            services.AddAutoMapper(typeof(StockProfile));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

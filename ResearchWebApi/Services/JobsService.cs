@@ -151,6 +151,8 @@ namespace ResearchWebApi.Services
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var stockTransactionResultList = new List<StockTransactionResult>();
 
+            var allStock = _dataService.GetStockDataFromDb(symbol, period.Start.AddYears(-1).AddDays(-10), period.End.AddDays(10));
+
             slidingWindows.ForEach((window) =>
             {
                 var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
@@ -191,7 +193,7 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TestPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
+                var stockListDto = _dataService.GetStockDataFromExistList(allStock, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
                 transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
 
                 //var stockListDto = new List<StockModelDTO>();
@@ -271,7 +273,9 @@ namespace ResearchWebApi.Services
 
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
-         
+
+            var allStock = _dataService.GetStockDataFromDb(symbol, period.Start.AddYears(-1).AddDays(-10), period.End.AddDays(10));
+
             slidingWindows.ForEach((window) =>
             {
                 var periodStart = window.TrainPeriod.Start;
@@ -284,7 +288,7 @@ namespace ResearchWebApi.Services
                 // 用這邊在控制取fitness/transaction的日期區間
                 // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
                 // +1 是為了時差 取正確的最後一天
-                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _dataService.GetStockDataFromExistList(allStock, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var bestGbestList = new List<ITestCase>();
                 var bestGbest = new SMAStatusValue();
                 int gBestCount = 0;
@@ -377,6 +381,9 @@ namespace ResearchWebApi.Services
 
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
+
+            var allStock = _dataService.GetStockDataFromDb(symbol, period.Start.AddYears(-1).AddDays(-10), period.End.AddDays(10));
+
             slidingWindows.ForEach((window) =>
             {
                 var periodStart = window.TrainPeriod.Start;
@@ -389,7 +396,7 @@ namespace ResearchWebApi.Services
                 // 用這邊在控制取fitness/transaction的日期區間
                 // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
                 // +1 是為了時差 取正確的最後一天
-                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _dataService.GetStockDataFromExistList(allStock, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 var bestGbestList = new List<ITestCase>();
                 var bestGbest = new TrailingStopStatusValue();
                 int gBestCount = 0;
@@ -574,6 +581,8 @@ namespace ResearchWebApi.Services
             var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
             var stockTransactionResultList = new List<StockTransactionResult>();
 
+            var allStock = _dataService.GetStockDataFromDb(symbol, period.Start.AddYears(-1).AddDays(-10), period.End.AddDays(10));
+
             slidingWindows.ForEach((window) =>
             {
                 var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
@@ -613,7 +622,7 @@ namespace ResearchWebApi.Services
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
-                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _dataService.GetStockDataFromExistList(allStock, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
                 transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategy);
 
                 var currentStock = stockListDto.Last().Price ?? 0;
@@ -717,12 +726,15 @@ namespace ResearchWebApi.Services
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
             var algorithmConst = strategyType == StrategyType.SMA ? _smaGnqtsAlgorithmService.GetConst() : _trailingStopGnqtsAlgorithmService.GetConst();
+
+            var allStock = _dataService.GetStockDataFromDb(symbol, period.Start.AddYears(-1).AddDays(-10), period.End.AddDays(10));
+
             slidingWindows.ForEach((window) =>
             {
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
 
-                var stockListDto = _dataService.GetStockDataFromDb(symbol, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var stockListDto = _dataService.GetStockDataFromExistList(allStock, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
 
                 var eachWindowResultParameter = new EachWindowResultParameter
                 {

@@ -8,6 +8,7 @@ namespace ResearchWebApi.Interface
     {
         List<StockModel> GetPeriodDataFromYahooApi(string stockSymbol, DateTime period1, DateTime period2);
         List<StockModelDTO> GetStockDataFromDb(string stockSymbol, DateTime period1, DateTime period2);
+        List<StockModelDTO> GetStockDataFromExistList(List<StockModelDTO> allStock, DateTime period1, DateTime period2);
         string SendGetRequest(string url);
     }
 }

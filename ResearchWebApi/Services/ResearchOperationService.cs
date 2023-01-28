@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Hangfire.Server;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
@@ -139,80 +141,49 @@ namespace ResearchWebApi.Services
             StockTransaction lastTrans)
         {
             bool hasQty = false;
-            StockModelDTO prevStock = stockList.FirstOrDefault();
             var testCaseSma = (TestCaseSMA)testCase;
-            Stopwatch GetFromListsw = new Stopwatch();
-            var swList = new List<string>();
+            List<StockModelTransInfo> stockInfoList = MapStockInfo(stockList, periodStartTimeStamp, testCaseSma);
 
-            stockList.ForEach(stock =>
+            stockInfoList.FindAll(stock => stock.Date > periodStartTimeStamp).ForEach(stock =>
             {
-                    GetFromListsw.Start();
-                var buyShortMaVal = stock.MaList[testCaseSma.BuyShortTermMa] ?? null;
-                var buyLongMaVal = stock.MaList[testCaseSma.BuyLongTermMa] ?? null;
-                var sellShortMa = stock.MaList[testCaseSma.SellShortTermMa] ?? null;
-                var sellLongMaVal = stock.MaList[testCaseSma.SellLongTermMa] ?? null;
-                    GetFromListsw.Stop();
-                    swList.Add($" GetFromList {GetFromListsw.Elapsed.TotalMilliseconds * 1000:n3}μs");
+                var price = stock.Price ?? 0;
 
-                var prevBuyShortMa = prevStock.MaList[testCaseSma.BuyShortTermMa] ?? null;
-                var prevBuyLongMaVal = prevStock.MaList[testCaseSma.BuyLongTermMa] ?? null;
-                var prevSellShortMaVal = prevStock.MaList[testCaseSma.SellShortTermMa] ?? null;
-                var prevSellLongMaVal = prevStock.MaList[testCaseSma.SellLongTermMa] ?? null;
-                if (stock.Date > periodStartTimeStamp)
+                bool testToBuy = _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
+                bool testToSell = _transTimingService.TimeToSell(stock.SellShortTermMa, stock.SellLongTermMa, stock.PrevSellShortTermMa, stock.PrevSellLongTermMa, hasQty);
+
+                if (stock.BuyShortTermMa != null && stock.BuyLongTermMa != null && testToBuy)
                 {
-                    var price = stock.Price ?? 0;
-
-                    bool testToBuy = _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
-                    bool testToSell = _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty);
-
-                    if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
+                    var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
+                    lastTrans = new StockTransactionSMA
                     {
-                        var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
-                        lastTrans = new StockTransactionSMA
-                        {
-                            TransTime = stock.Date,
-                            TransPrice = price,
-                            TransType = TransactionType.Buy,
-                            TransVolume = volume,
-                            Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
-                            BuyShortMaPrice = buyShortMaVal,
-                            BuyLongMaPrice = buyLongMaVal,
-                            BuyShortMaPrice1DayBefore = prevBuyShortMa,
-                            BuyLongMaPrice1DayBefore = prevBuyLongMaVal,
-                        };
-                        myTransactions.Add(lastTrans);
-                        hasQty = !hasQty;
+                        TransTime = stock.Date,
+                        TransPrice = price,
+                        TransType = TransactionType.Buy,
+                        TransVolume = volume,
+                        Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                    };
+                    myTransactions.Add(lastTrans);
+                    hasQty = !hasQty;
 
-                    }
-                    // Note: 注意現在是用哪一種時機點
-                    else if (sellShortMa != null && sellLongMaVal != null && testToSell)
-                    {
-                        var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
-                        lastTrans = new StockTransactionSMA
-                        {
-                            TransTime = stock.Date,
-                            TransPrice = price,
-                            TransType = TransactionType.Sell,
-                            TransVolume = volume,
-                            Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
-                            SellShortMaPrice = sellShortMa,
-                            SellLongMaPrice = sellLongMaVal,
-                            SellShortMaPrice1DayBefore = prevSellShortMaVal,
-                            SellLongMaPrice1DayBefore = prevSellLongMaVal,
-                        };
-                        myTransactions.Add(lastTrans);
-                        hasQty = !hasQty;
-                    }
                 }
-                prevStock = stock;
+                // Note: 注意現在是用哪一種時機點
+                else if (stock.SellShortTermMa != null && stock.SellLongTermMa != null && testToSell)
+                {
+                    var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
+                    lastTrans = new StockTransactionSMA
+                    {
+                        TransTime = stock.Date,
+                        TransPrice = price,
+                        TransType = TransactionType.Sell,
+                        TransVolume = volume,
+                        Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                    };
+                    myTransactions.Add(lastTrans);
+                    hasQty = !hasQty;
+                }
             });
 
             return myTransactions;
-        }
-
-        private bool TestAfterGoldCross(double? buyShortMaVal, double? buyLongMaVal, TestCaseSMA testCaseSMA, bool hasQty)
-        {
-            return testCaseSMA.Type == ResultTypeEnum.Test && buyShortMaVal > buyLongMaVal && hasQty == false;
         }
 
         public List<StockTransaction> GetMyTransactionsTrailingStop(
@@ -224,75 +195,87 @@ namespace ResearchWebApi.Services
         {
             bool hasQty = false;
             bool firstDay = true;
-            StockModelDTO prevStock = stockList.FirstOrDefault();
             var testCaseTrailingStop = (TestCaseTrailingStop)testCase;
             double maxPrice = 0;
-            stockList.ForEach(stock =>
+            var trailingStopPercentage = testCaseTrailingStop.StopPercentage;
+            List<StockModelTransInfo> stockInfoList = MapStockInfo(stockList, periodStartTimeStamp, testCaseTrailingStop);
+
+            stockInfoList.FindAll(stock => stock.Date > periodStartTimeStamp).ForEach(stock =>
             {
-                var buyShortMaVal = stock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
-                var buyLongMaVal = stock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null;
-                var sellShortMa = stock.MaList[testCaseTrailingStop.SellShortTermMa] ?? null;
-                var sellLongMaVal = stock.MaList[testCaseTrailingStop.SellLongTermMa] ?? null;
-                var trailingStopPercentage = testCaseTrailingStop.StopPercentage;
+                var price = stock.Price ?? 0;
 
-                var prevBuyShortMa = prevStock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null;
-                var prevBuyLongMaVal = prevStock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null;
-                var prevSellShortMaVal = prevStock.MaList[testCaseTrailingStop.SellShortTermMa] ?? null;
-                var prevSellLongMaVal = prevStock.MaList[testCaseTrailingStop.SellLongTermMa] ?? null;
-                if (stock.Date > periodStartTimeStamp)
+                bool testToBuy = firstDay
+                        ? stock.BuyShortTermMa > stock.BuyLongTermMa
+                        : _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
+                bool testToSell = (_transTimingService.TimeToSellCheckingByBias(price, stock.BuyShortTermMa) &&
+                                    _transTimingService.TimeToSell(stock.SellShortTermMa, stock.SellLongTermMa, stock.PrevSellShortTermMa, stock.PrevSellLongTermMa, hasQty))
+                                    || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
+
+                firstDay = false;
+
+                if (stock.BuyShortTermMa != null && stock.BuyLongTermMa != null && testToBuy)
                 {
-                    var price = stock.Price ?? 0;
-
-                    bool testToBuy = firstDay
-                            ? buyShortMaVal > buyLongMaVal
-                            : _transTimingService.TimeToBuy(buyShortMaVal, buyLongMaVal, prevBuyShortMa, prevBuyLongMaVal, hasQty);
-                    bool testToSell = (_transTimingService.TimeToSellCheckingByBias(price, buyShortMaVal) &&
-                                        _transTimingService.TimeToSell(sellShortMa, sellLongMaVal, prevSellShortMaVal, prevSellLongMaVal, hasQty))
-                                        || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
-
-                    firstDay = false;
-
-                    if (buyShortMaVal != null && buyLongMaVal != null && testToBuy)
+                    var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
+                    lastTrans = new StockTransactionSMA
                     {
-                        var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
-                        lastTrans = new StockTransactionSMA
-                        {
-                            TransTime = stock.Date,
-                            TransPrice = price,
-                            TransType = TransactionType.Buy,
-                            TransVolume = volume,
-                            Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
-                            BuyShortMaPrice = buyShortMaVal,
-                            BuyLongMaPrice = buyLongMaVal,
-                            BuyShortMaPrice1DayBefore = prevBuyShortMa,
-                            BuyLongMaPrice1DayBefore = prevBuyLongMaVal,
-                        };
-                        myTransactions.Add(lastTrans);
-                        hasQty = !hasQty;
+                        TransTime = stock.Date,
+                        TransPrice = price,
+                        TransType = TransactionType.Buy,
+                        TransVolume = volume,
+                        Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                        BuyShortMaPrice = stock.BuyShortTermMa,
+                        BuyLongMaPrice = stock.BuyLongTermMa,
+                    };
+                    myTransactions.Add(lastTrans);
+                    hasQty = !hasQty;
 
-                    }
-                    // Note: 注意現在是用哪一種時機點
-                    else if (testToSell)
-                    {
-                        var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
-                        lastTrans = new StockTransactionSMA
-                        {
-                            TransTime = stock.Date,
-                            TransPrice = price,
-                            TransType = TransactionType.Sell,
-                            TransVolume = volume,
-                            Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
-                            TrailingStopPercentage = trailingStopPercentage,
-                        };
-                        myTransactions.Add(lastTrans);
-                        hasQty = !hasQty;
-                        maxPrice = 0;
-                    }
                 }
-                prevStock = stock;
+                // Note: 注意現在是用哪一種時機點
+                else if (testToSell)
+                {
+                    var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
+                    lastTrans = new StockTransactionSMA
+                    {
+                        TransTime = stock.Date,
+                        TransPrice = price,
+                        TransType = TransactionType.Sell,
+                        TransVolume = volume,
+                        Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                        TrailingStopPercentage = trailingStopPercentage,
+                    };
+                    myTransactions.Add(lastTrans);
+                    hasQty = !hasQty;
+                    maxPrice = 0;
+                }
             });
 
             return myTransactions;
+        }
+
+        private static List<StockModelTransInfo> MapStockInfo(List<StockModelDTO> stockList, double periodStartTimeStamp, ITestCase testCaseTrailingStop)
+        {
+            StockModelDTO prevStock = stockList.FirstOrDefault();
+            var stockInfoList = stockList.Select(stock =>
+            {
+                var result =  new StockModelTransInfo
+                {
+                    StockName = stock.StockName,
+                    Date = stock.Date,
+                    Price = stock.Price,
+                    BuyShortTermMa = stock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null,
+                    BuyLongTermMa = stock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null,
+                    SellShortTermMa = stock.MaList[testCaseTrailingStop.SellShortTermMa] ?? null,
+                    SellLongTermMa = stock.MaList[testCaseTrailingStop.SellLongTermMa] ?? null,
+                    PrevBuyShortTermMa = prevStock.MaList[testCaseTrailingStop.BuyShortTermMa] ?? null,
+                    PrevBuyLongTermMa = prevStock.MaList[testCaseTrailingStop.BuyLongTermMa] ?? null,
+                    PrevSellShortTermMa = prevStock.MaList[testCaseTrailingStop.SellShortTermMa] ?? null,
+                    PrevSellLongTermMa = prevStock.MaList[testCaseTrailingStop.SellLongTermMa] ?? null,
+                };
+                prevStock = stock;
+                return result;
+            }).ToList();
+
+            return stockInfoList;
         }
 
         public List<StockTransaction> GetMyTransactionsRSI(

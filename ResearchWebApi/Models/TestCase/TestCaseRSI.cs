@@ -10,6 +10,10 @@ namespace ResearchWebApi.Models
         public int MeasureRangeDay { get; set; }
         public int OverSold { get; set; }
         public int OverBought { get; set; }
+        public int BuyShortTermMa { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int BuyLongTermMa { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int SellShortTermMa { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int SellLongTermMa { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public TestCaseRSI DeepClone()
         {

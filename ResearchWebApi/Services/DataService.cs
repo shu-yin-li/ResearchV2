@@ -97,5 +97,13 @@ namespace ResearchWebApi.Services
             var stockModels = _stockModeldataProvider.Find(stockSymbol, period1, period2);
             return _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockModels.OrderBy(e => e.Date).ToList());
         }
+
+        public List<StockModelDTO> GetStockDataFromExistList(List<StockModelDTO> allStock, DateTime period1, DateTime period2)
+        {
+            var stockModels = allStock.Where(e => e.Date > period1.Subtract(new DateTime(1970, 1, 1)).TotalSeconds
+                                                    && e.Date < period2.Subtract(new DateTime(1970, 1, 1)).TotalSeconds)
+                                      .OrderBy(e => e.Date);
+            return stockModels.ToList();
+        }
     }
 }

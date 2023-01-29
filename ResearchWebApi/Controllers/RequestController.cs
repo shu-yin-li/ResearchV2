@@ -21,8 +21,8 @@ namespace ResearchWebApi.Controllers
         private IStockModelDataProvider _stockModelDataProvider;
         private IJobsService _jobsService;
         private Period _defaultPeriod = new Period {
-            Start = new DateTime(2012, 1, 1, 0, 0, 0),
-            End = new DateTime(2021, 12, 31, 0, 0, 0)
+            Start = new DateTime(2012, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
+            End = new DateTime(2021, 12, 31, 0, 0, 0, System.DateTimeKind.Utc)
         };
         private List<string> _defaultSymbols = new List<string> { "^DJI", "^INX", "^IXIC", "^NYA", "AAPL", "AMGN", "AXP", "BA", "CAT", "CRM", "CSCO", "CVX",
                                                                     "DD", "DIS", "GS", "HD", "HON", "IBM", "INTC", "JNJ", "JPM", "KO", "MCD", "MMM", "MRK",
@@ -122,11 +122,11 @@ namespace ResearchWebApi.Controllers
 
         private void PrepareSource(string symbol)
         {
-            var stockList = _dataService.GetStockDataFromDb(symbol, new DateTime(2021, 12, 20, 0, 0, 0), new DateTime(2021, 12, 31, 0, 0, 0));
+            var stockList = _dataService.GetStockDataFromDb(symbol, new DateTime(2021, 12, 20, 0, 0, 0, System.DateTimeKind.Utc), new DateTime(2021, 12, 31, 0, 0, 0, System.DateTimeKind.Utc));
             if (stockList.Any()) return;
 
-            var periodEnd = new DateTime(2022, 12, 31, 0, 0, 0);
-            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2008, 1, 1, 0, 0, 0), periodEnd);
+            var periodEnd = new DateTime(2022, 12, 31, 0, 0, 0, System.DateTimeKind.Utc);
+            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2008, 1, 1, 0, 0, 0, System.DateTimeKind.Utc), periodEnd);
             _indictorCalculationService.CalculateMovingAvarage(ref indicatorStockList);
             _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
 
@@ -170,8 +170,8 @@ namespace ResearchWebApi.Controllers
                 {
                     var period = new Period
                     {
-                        Start = new DateTime(tempYear, 1, 1),
-                        End = new DateTime(tempYear, 12, 31),
+                        Start = new DateTime(tempYear, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
+                        End = new DateTime(tempYear, 12, 31, 0, 0, 0, System.DateTimeKind.Utc),
                     };
                     BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithSMA(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
                     tempYear++;
@@ -188,8 +188,8 @@ namespace ResearchWebApi.Controllers
                 {
                     var period = new Period
                     {
-                        Start = new DateTime(tempYear, 1, 1),
-                        End = new DateTime(tempYear, 12, 31),
+                        Start = new DateTime(tempYear, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
+                        End = new DateTime(tempYear, 12, 31, 0, 0, 0, System.DateTimeKind.Utc),
                     };
                     BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
                     tempYear++;

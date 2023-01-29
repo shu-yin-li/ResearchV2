@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Builder;
@@ -65,7 +65,12 @@ namespace ResearchWebApi
                 var scopedProvider = serviceProvider.CreateScope().ServiceProvider;
                 config
                     //.UseActivator(new ScopedJobActivator(scopedProvider))
-                    .UsePostgreSqlStorage(connectString);
+                    .UsePostgreSqlStorage(connectString,
+                       new PostgreSqlStorageOptions()
+                       {
+                           //change this
+                           InvisibilityTimeout = TimeSpan.FromHours(3)
+                       });
             });
             services.AddHangfireServer(options =>
             {

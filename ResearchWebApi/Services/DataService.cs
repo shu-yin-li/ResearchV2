@@ -100,8 +100,8 @@ namespace ResearchWebApi.Services
 
         public List<StockModelDTO> GetStockDataFromExistList(List<StockModelDTO> allStock, DateTime period1, DateTime period2)
         {
-            var stockModels = allStock.Where(e => e.Date > period1.Subtract(new DateTime(1970, 1, 1)).TotalSeconds
-                                                    && e.Date < period2.Subtract(new DateTime(1970, 1, 1)).TotalSeconds)
+            var stockModels = allStock.Where(e => e.Date > period1.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds
+                                                    && e.Date < period2.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds)
                                       .OrderBy(e => e.Date);
             return stockModels.ToList();
         }

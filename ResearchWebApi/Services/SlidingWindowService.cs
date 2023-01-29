@@ -23,7 +23,7 @@ namespace ResearchWebApi.Services
                 {
                     var sw = new SlidingWindow();
                     var endMonth = monthConverter(startDate.Month + (int)test - 1);
-                    var testEnd = new DateTime(startDate.Year, endMonth, DateTime.DaysInMonth(startDate.Year, endMonth), 0, 0, 0);
+                    var testEnd = new DateTime(startDate.Year, endMonth, DateTime.DaysInMonth(startDate.Year, endMonth), 0, 0, 0, System.DateTimeKind.Utc);
                     sw.TestPeriod.Start = startDate;
                     sw.TestPeriod.End = testEnd;
                     GenerateTrainPeriod(train, startDate, sw);
@@ -39,12 +39,12 @@ namespace ResearchWebApi.Services
         {
                 var startMonth = startDate.Month - (int)train;
                 var endMonth = startDate.Month - 1;
-                sw.TrainPeriod.Start = new DateTime(convertYear(startDate.Year, startMonth), monthConverter(startMonth), 1, 0, 0, 0);
+                sw.TrainPeriod.Start = new DateTime(convertYear(startDate.Year, startMonth), monthConverter(startMonth), 1, 0, 0, 0, System.DateTimeKind.Utc);
                 sw.TrainPeriod.End = new DateTime(
                     convertYear(startDate.Year, endMonth),
                     monthConverter(endMonth),
                     DateTime.DaysInMonth(startDate.Year, monthConverter(endMonth)),
-                    0, 0, 0);
+                    0, 0, 0, System.DateTimeKind.Utc);
         }
 
         private int monthConverter(int month)
@@ -77,7 +77,7 @@ namespace ResearchWebApi.Services
                 {
                     var sw = new SlidingWindow();
                     var testEndMonth = monthConverter(startDate.Month + (int)XStar - 1);
-                    var testEnd = new DateTime(startDate.Year,testEndMonth, DateTime.DaysInMonth(startDate.Year, testEndMonth), 0, 0, 0);
+                    var testEnd = new DateTime(startDate.Year,testEndMonth, DateTime.DaysInMonth(startDate.Year, testEndMonth), 0, 0, 0, System.DateTimeKind.Utc);
                     sw.TestPeriod.Start = startDate;
                     sw.TestPeriod.End = testEnd;
                     sw.TrainPeriod.Start = startDate.AddYears(-1);

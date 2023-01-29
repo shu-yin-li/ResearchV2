@@ -48,8 +48,8 @@ namespace ResearchWebApi.Repository
         {
             return _context.StockModel
                 .Where(e => e.StockName.Equals(stockSymbol)
-                            && e.Date > period1.Subtract(new DateTime(1970, 1, 1)).TotalSeconds
-                            && e.Date < period2.Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
+                            && e.Date > period1.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds
+                            && e.Date < period2.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds);
         }
 
     }

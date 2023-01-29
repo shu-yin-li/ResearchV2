@@ -67,7 +67,10 @@ namespace ResearchWebApi
                     //.UseActivator(new ScopedJobActivator(scopedProvider))
                     .UsePostgreSqlStorage(connectString);
             });
-            services.AddHangfireServer();
+            services.AddHangfireServer(options =>
+            {
+                options.WorkerCount = 10;
+            });
 
             services.AddSwaggerGen();
 

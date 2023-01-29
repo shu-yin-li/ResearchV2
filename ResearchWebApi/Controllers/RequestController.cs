@@ -125,8 +125,8 @@ namespace ResearchWebApi.Controllers
             var stockList = _dataService.GetStockDataFromDb(symbol, new DateTime(2021, 12, 20, 0, 0, 0), new DateTime(2021, 12, 31, 0, 0, 0));
             if (stockList.Any()) return;
 
-            var periodEnd = new DateTime(2022, 5, 31, 0, 0, 0);
-            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(1980, 12, 12, 0, 0, 0), periodEnd);
+            var periodEnd = new DateTime(2022, 12, 31, 0, 0, 0);
+            List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2008, 1, 1, 0, 0, 0), periodEnd);
             _indictorCalculationService.CalculateMovingAvarage(ref indicatorStockList);
             _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
 

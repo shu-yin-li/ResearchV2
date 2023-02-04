@@ -4,6 +4,7 @@
     {
         SMA,
         RSI,
-        TrailingStop
+        TrailingStop,
+        Bias
     }
 }

@@ -129,6 +129,7 @@ namespace ResearchWebApi.Services
             if (strategyType == StrategyType.SMA) GetMyTransactionsSMA(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
             if (strategyType == StrategyType.RSI) GetMyTransactionsRSI(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
             if (strategyType == StrategyType.TrailingStop) GetMyTransactionsTrailingStop(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
+            if (strategyType == StrategyType.Bias) GetMyTransactionsBias(myTransactions, stockList, testCase, periodStartTimeStamp, lastTrans);
 
             return myTransactions;
         }
@@ -207,6 +208,71 @@ namespace ResearchWebApi.Services
                 bool testToBuy = firstDay
                         ? stock.BuyShortTermMa > stock.BuyLongTermMa
                         : _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
+                bool testToSell = _transTimingService.TimeToSell(stock.SellShortTermMa, stock.SellLongTermMa, stock.PrevSellShortTermMa, stock.PrevSellLongTermMa, hasQty)
+                                  || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
+
+                firstDay = false;
+
+                if (stock.BuyShortTermMa != null && stock.BuyLongTermMa != null && testToBuy)
+                {
+                    var volume = _calculateVolumeService.CalculateBuyingVolumeOddShares(lastTrans.Balance, price);
+                    lastTrans = new StockTransactionSMA
+                    {
+                        TransTime = stock.Date,
+                        TransPrice = price,
+                        TransType = TransactionType.Buy,
+                        TransVolume = volume,
+                        Balance = lastTrans.Balance - Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                        BuyShortMaPrice = stock.BuyShortTermMa,
+                        BuyLongMaPrice = stock.BuyLongTermMa,
+                    };
+                    myTransactions.Add(lastTrans);
+                    hasQty = !hasQty;
+
+                }
+                // Note: 注意現在是用哪一種時機點
+                else if (testToSell)
+                {
+                    var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
+                    lastTrans = new StockTransactionSMA
+                    {
+                        TransTime = stock.Date,
+                        TransPrice = price,
+                        TransType = TransactionType.Sell,
+                        TransVolume = volume,
+                        Balance = lastTrans.Balance + Math.Round(price * volume, 10, MidpointRounding.ToZero),
+                        TrailingStopPercentage = trailingStopPercentage,
+                    };
+                    myTransactions.Add(lastTrans);
+                    hasQty = !hasQty;
+                    maxPrice = 0;
+                }
+            });
+
+            return myTransactions;
+        }
+
+        public List<StockTransaction> GetMyTransactionsBias(
+            List<StockTransaction> myTransactions,
+            List<StockModelDTO> stockList,
+            ITestCase testCase,
+            double periodStartTimeStamp,
+            StockTransaction lastTrans)
+        {
+            bool hasQty = false;
+            bool firstDay = true;
+            var testCaseTrailingStop = (TestCaseTrailingStop)testCase;
+            double maxPrice = 0;
+            var trailingStopPercentage = testCaseTrailingStop.StopPercentage;
+            List<StockModelTransInfo> stockInfoList = MapStockInfo(stockList, periodStartTimeStamp, testCaseTrailingStop);
+
+            stockInfoList.FindAll(stock => stock.Date > periodStartTimeStamp).ForEach(stock =>
+            {
+                var price = stock.Price ?? 0;
+
+                bool testToBuy = firstDay
+                        ? stock.BuyShortTermMa > stock.BuyLongTermMa
+                        : _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
                 bool testToSell = (_transTimingService.TimeToSellCheckingByBias(price, stock.BuyShortTermMa) &&
                                     _transTimingService.TimeToSell(stock.SellShortTermMa, stock.SellLongTermMa, stock.PrevSellShortTermMa, stock.PrevSellLongTermMa, hasQty))
                                     || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
@@ -251,6 +317,7 @@ namespace ResearchWebApi.Services
 
             return myTransactions;
         }
+
 
         private static List<StockModelTransInfo> MapStockInfo(List<StockModelDTO> stockList, double periodStartTimeStamp, ITestCase testCaseTrailingStop)
         {

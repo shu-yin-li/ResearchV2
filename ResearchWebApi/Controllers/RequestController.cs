@@ -19,6 +19,7 @@ namespace ResearchWebApi.Controllers
         private IDataService _dataService;
         private IMapper _mapper;
         private IStockModelDataProvider _stockModelDataProvider;
+        private IStockModelOldDataProvider _stockModelOldDataProvider;
         private IJobsService _jobsService;
         private Period _defaultPeriod = new Period {
             Start = new DateTime(2012, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
@@ -33,12 +34,14 @@ namespace ResearchWebApi.Controllers
             IIndicatorCalulationService movingAvarageService,
             IDataService dataService,
             IStockModelDataProvider stockModelDataProvider,
+            IStockModelOldDataProvider stockModelOldDataProvider,
             IMapper mapper)
         {
             _jobsService = jobsService ?? throw new ArgumentNullException(nameof(jobsService));
             _indictorCalculationService = movingAvarageService ?? throw new ArgumentNullException(nameof(movingAvarageService));
             _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
             _stockModelDataProvider = stockModelDataProvider ?? throw new ArgumentNullException(nameof(stockModelDataProvider));
+            _stockModelOldDataProvider = stockModelOldDataProvider ?? throw new ArgumentNullException(nameof(stockModelDataProvider));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -113,11 +116,38 @@ namespace ResearchWebApi.Controllers
             return Ok();
         }
 
-        [HttpPost("TestRSI")]
+        [HttpPost("compareMa")]
         public IActionResult TestRSI([FromBody] Period period)
         {
-            var transaction = _jobsService.Temp(period);
-            return Ok(transaction.ToString());
+            PrepareSource("AAPL");
+
+            var stockList = _stockModelDataProvider.Find("AAPL", period.Start, period.End).OrderBy(s => s.Date).ToList();
+            var stockDtoList = _mapper.Map<List<StockModel>, List<StockModelDTO>>(stockList);
+            var stockOldList = _stockModelOldDataProvider.Find("AAPL", period.Start, period.End).OrderBy(s => s.Date).ToList();
+
+            if (stockOldList.First().Date != stockDtoList.First().Date) return BadRequest();
+
+            stockOldList.ForEach(stockOld =>
+            {
+                var stockDto = stockDtoList.First();
+                if (stockOld.Price != stockDto.Price) throw new InvalidOperationException(stockOld.Date.ToString());
+
+                var properties = typeof(MaModel).GetProperties();
+                foreach (var prop in properties)
+                {
+                    var stockOldMaValue = (double?)typeof(StockModelOld).GetProperty(prop.Name).GetValue(stockOld);
+                    var key = int.Parse(prop.Name.Replace("Ma", ""));
+                    if (stockOldMaValue != stockDto.MaList[key])
+                    {
+                        continue;
+                    }
+                }
+
+                stockDtoList.RemoveAt(0);
+            });
+
+
+            return Ok();
         }
 
         private void PrepareSource(string symbol)
@@ -128,7 +158,7 @@ namespace ResearchWebApi.Controllers
             var periodEnd = new DateTime(2022, 12, 31, 0, 0, 0, System.DateTimeKind.Utc);
             List<StockModel> indicatorStockList = _dataService.GetPeriodDataFromYahooApi(symbol, new DateTime(2008, 1, 1, 0, 0, 0, System.DateTimeKind.Utc), periodEnd);
             _indictorCalculationService.CalculateMovingAvarage(ref indicatorStockList);
-            _indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
+            //_indictorCalculationService.CalculateRelativeStrengthIndex(ref indicatorStockList);
 
             _stockModelDataProvider.AddBatch(indicatorStockList);
         }

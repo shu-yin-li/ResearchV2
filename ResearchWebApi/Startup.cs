@@ -50,6 +50,8 @@ namespace ResearchWebApi
             // DB
             services.AddDbContextPool<StockModelDbContext>(options => { options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory);});
             services.AddScoped<IStockModelDataProvider, StockModelDataProvider>();
+            services.AddDbContextPool<StockModelOldDbContext>(options => { options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory); });
+            services.AddScoped<IStockModelOldDataProvider, StockModelOldDataProvider>();
             services.AddDbContextPool<CommonResultDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
             services.AddScoped<IDataProvider<CommonResult>, CommonResultDataProvider>();
             services.AddDbContextPool<EarnResultDbContext>(options => options.UseNpgsql(connectString).UseLoggerFactory(MyLoggerFactory));
@@ -74,7 +76,7 @@ namespace ResearchWebApi
             });
             services.AddHangfireServer(options =>
             {
-                options.WorkerCount = 10;
+                options.WorkerCount = 3;
             });
 
             services.AddSwaggerGen();

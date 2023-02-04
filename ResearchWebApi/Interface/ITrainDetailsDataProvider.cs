@@ -5,7 +5,7 @@ namespace ResearchWebApi.Interface
 {
     public interface ITrainDetailsDataProvider : IDataProvider<TrainDetails>
     {
-        public IEnumerable<TrainDetails> Find(string trainId);
-        public TrainDetails FindLatest(string trainId);
+        public IEnumerable<TrainDetails> Find(string trainId, string symbol);
+        public TrainDetails FindLatest(string trainId, string symbol);
     }
 }

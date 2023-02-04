@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
 
@@ -9,6 +11,7 @@ namespace ResearchWebApi.Repository
     public class TrainDetailsDataProvider : ITrainDetailsDataProvider
     {
         private readonly TrainDetailsDbContext _context;
+
         public TrainDetailsDataProvider(TrainDetailsDbContext context)
         {
             _context = context;
@@ -33,15 +36,24 @@ namespace ResearchWebApi.Repository
             _context.SaveChanges();
         }
 
-        public IEnumerable<TrainDetails> Find(string trainId)
+        public IEnumerable<TrainDetails> Find(string trainId, string symbol)
         {
-            return _context.TrainDetails.ToList().FindAll(t => t.TrainId == trainId);
+            var entities = from t in _context.TrainDetails
+                           join c in _context.CommonResult on t.CommonResultId equals c.Id
+                           where t.TrainId == trainId && c.StockName == symbol
+                           orderby t.ExecuteDate descending
+                           select t;
+            return entities;
         }
 
-        public TrainDetails FindLatest(string trainId)
+        public TrainDetails FindLatest(string trainId, string symbol)
         {
-            var entities = _context.TrainDetails.ToList().FindAll(t => t.TrainId == trainId);
-            return entities.OrderByDescending(t => t.ExecuteDate).FirstOrDefault();
+            var entities = from t in _context.TrainDetails
+                           join c in _context.CommonResult on t.CommonResultId equals c.Id
+                           where t.TrainId == trainId && c.StockName == symbol
+                           orderby t.ExecuteDate descending
+                           select t;
+            return entities.FirstOrDefault();
         }
 
         public List<TrainDetails> GetAll(Guid commonResultId)

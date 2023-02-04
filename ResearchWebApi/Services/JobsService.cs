@@ -156,7 +156,7 @@ namespace ResearchWebApi.Services
             slidingWindows.ForEach((window) =>
             {
                 var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
-                var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
+                var trainDetails = _trainDetailsDataProvider.FindLatest(trainId, symbol);
                 if(trainDetails ==  null) throw new InvalidOperationException($"{trainId} is not found.");
                 var transNodes = trainDetails.TransactionNodes.Split(",");
 
@@ -309,7 +309,7 @@ namespace ResearchWebApi.Services
                     //}
                     #endregion
                     gBest = (SMAStatusValue)_smaGnqtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
-                    CompareSMAGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
+                    CompareSMAGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList, symbol);
                 }
 
                 #endregion
@@ -409,7 +409,7 @@ namespace ResearchWebApi.Services
                 {
                     TrailingStopStatusValue gBest;
                     gBest = (TrailingStopStatusValue)_trailingStopGnqtsAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
-                    CompareTrailingStopGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList);
+                    CompareTrailingStopGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList, symbol);
                 }
 
                 #endregion
@@ -586,7 +586,7 @@ namespace ResearchWebApi.Services
             slidingWindows.ForEach((window) =>
             {
                 var trainId = $"{algorithmName}_{strategy}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
-                var trainDetails = _trainDetailsDataProvider.FindLatest(trainId);
+                var trainDetails = _trainDetailsDataProvider.FindLatest(trainId, symbol);
                 if (trainDetails == null) throw new InvalidOperationException($"{trainId} is not found.");
                 var transNodes = trainDetails.TransactionNodes.Split(",");
 
@@ -777,7 +777,7 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateTraditionalResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
-        private static void CompareSMAGBestByBits(ref SMAStatusValue bestGbest, ref int gBestCount, SMAStatusValue gBest, ref List<ITestCase> bestGbestList)
+        private static void CompareSMAGBestByBits(ref SMAStatusValue bestGbest, ref int gBestCount, SMAStatusValue gBest, ref List<ITestCase> bestGbestList, string symbol)
         {
             if (bestGbest.Fitness < gBest.Fitness)
             {
@@ -797,6 +797,7 @@ namespace ResearchWebApi.Services
             {
                 bestGbestList.Add(new TestCaseSMA
                 {
+                    Symbol = symbol,
                     BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
                     BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
                     SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
@@ -805,7 +806,7 @@ namespace ResearchWebApi.Services
             }
         }
 
-        private static void CompareTrailingStopGBestByBits(ref TrailingStopStatusValue bestGbest, ref int gBestCount, TrailingStopStatusValue gBest, ref List<ITestCase> bestGbestList)
+        private static void CompareTrailingStopGBestByBits(ref TrailingStopStatusValue bestGbest, ref int gBestCount, TrailingStopStatusValue gBest, ref List<ITestCase> bestGbestList, string symbol)
         {
             if (bestGbest.Fitness < gBest.Fitness)
             {
@@ -824,6 +825,7 @@ namespace ResearchWebApi.Services
             {
                 bestGbestList.Add(new TestCaseTrailingStop
                 {
+                    Symbol = symbol,
                     BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
                     BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
                     SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),

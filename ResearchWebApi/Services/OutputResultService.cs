@@ -101,7 +101,7 @@ namespace ResearchWebApi.Services
                     var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
                 }
-                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
+                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop || trainDetailsParameter.Strategy == StrategyType.Bias)
                 {
                     var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa}," +
@@ -167,7 +167,7 @@ namespace ResearchWebApi.Services
                     var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
                 }
-                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
+                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop || trainDetailsParameter.Strategy == StrategyType.Bias)
                 {
                     var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa}," +

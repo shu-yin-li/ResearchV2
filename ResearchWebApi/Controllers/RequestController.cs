@@ -45,6 +45,13 @@ namespace ResearchWebApi.Controllers
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
+        [HttpPut("PrepareSourceOfSympol")]
+        public IActionResult PrepareSourceOfSympol(string symbol)
+        {
+            PrepareSource(symbol);
+            return Ok();
+        }
+
         [HttpPost("Train")]
         public IActionResult SubmitTrainRequests([FromBody] TrainParameter trainParameter, bool AllTrain)
         {
@@ -179,7 +186,16 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
             {
                 BackgroundJob.Enqueue(()
-                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
+                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, StrategyType.TrailingStop));
+                return true;
+            }
+
+            if (trainParameter.MaSelection == MaSelection.Traditional
+                && trainParameter.TransactionTiming.Buy == StrategyType.Bias
+                && trainParameter.TransactionTiming.Sell == StrategyType.Bias)
+            {
+                BackgroundJob.Enqueue(()
+                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, StrategyType.Bias));
                 return true;
             }
 
@@ -221,7 +237,25 @@ namespace ResearchWebApi.Controllers
                         Start = new DateTime(tempYear, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
                         End = new DateTime(tempYear, 12, 31, 0, 0, 0, System.DateTimeKind.Utc),
                     };
-                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom, StrategyType.TrailingStop));
+                    tempYear++;
+                } while (tempYear <= trainParameter.Period.End.Year);
+                return true;
+            }
+
+            if (trainParameter.MaSelection == MaSelection.GNQTS
+                && trainParameter.TransactionTiming.Buy == StrategyType.Bias
+                && trainParameter.TransactionTiming.Sell == StrategyType.Bias)
+            {
+                var tempYear = trainParameter.Period.Start.Year;
+                do
+                {
+                    var period = new Period
+                    {
+                        Start = new DateTime(tempYear, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
+                        End = new DateTime(tempYear, 12, 31, 0, 0, 0, System.DateTimeKind.Utc),
+                    };
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom, StrategyType.Bias));
                     tempYear++;
                 } while (tempYear <= trainParameter.Period.End.Year);
                 return true;
@@ -257,6 +291,14 @@ namespace ResearchWebApi.Controllers
 
             if (trainParameter.TransactionTiming.Buy == StrategyType.TrailingStop
                 && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
+            {
+                BackgroundJob.Enqueue(()
+                => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));
+                return true;
+            }
+
+            if (trainParameter.TransactionTiming.Buy == StrategyType.Bias
+                && trainParameter.TransactionTiming.Sell == StrategyType.Bias)
             {
                 BackgroundJob.Enqueue(()
                 => _jobsService.Test(trainParameter.SlidingWinPair, Enum.GetName(typeof(MaSelection), trainParameter.MaSelection), trainParameter.Symbol, trainParameter.Period, trainParameter.TransactionTiming.Buy));

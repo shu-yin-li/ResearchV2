@@ -363,7 +363,7 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
-        public void TrainGNQTSWithTrailingStop(SlidingWinPair pair, string symbol, Period period, bool isCRandom)
+        public void TrainGNQTSWithTrailingStop(SlidingWinPair pair, string symbol, Period period, bool isCRandom, StrategyType strategy)
         {
             var random = new Random(343);
             Queue<int> cRandom = new Queue<int>();
@@ -372,8 +372,6 @@ namespace ResearchWebApi.Services
                 Console.WriteLine("Reading C Random.");
                 cRandom = _fileHandler.Readcsv("Data/srand343");
             }
-
-            var strategy = StrategyType.TrailingStop;
 
             List<SlidingWindow> slidingWindows = pair.IsStar
                 ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
@@ -530,7 +528,7 @@ namespace ResearchWebApi.Services
             TraditionalTrain(pair, symbol, period, StrategyType.SMA, testCases);
         }
 
-        public void TrainTraditionalWithTrailingStop(SlidingWinPair pair, string symbol, Period period)
+        public void TrainTraditionalWithTrailingStop(SlidingWinPair pair, string symbol, Period period, StrategyType strategy)
         {
             var testCases = new List<ITestCase>();
             List<int> shortMaList = new List<int> { 5, 10 };
@@ -569,7 +567,7 @@ namespace ResearchWebApi.Services
                     });
                 });
             });
-            TraditionalTrain(pair, symbol, period, StrategyType.TrailingStop, testCases);
+            TraditionalTrain(pair, symbol, period, strategy, testCases);
         }
 
         public void GetStockTransaction(SlidingWinPair pair, string algorithmName, string symbol, Period period, StrategyType strategy)

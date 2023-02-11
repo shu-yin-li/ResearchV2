@@ -736,11 +736,10 @@ namespace ResearchWebApi.Services
 
                 var eachWindowResultParameter = new EachWindowResultParameter
                 {
-                    StockList = stockListDto,
-                    PeriodStartTimeStamp = periodStartTimeStamp,
-                    SlidingWindow = window
+                    SlidingWindow = window,
+                    Strategy = strategyType,
+                    PeriodStartTimeStamp = periodStartTimeStamp
                 };
-
                 var trainDetailsParameter = new TrainDetailsParameter
                 {
                     Delta = algorithmConst.DELTA,
@@ -752,20 +751,21 @@ namespace ResearchWebApi.Services
 
                 testCases.ForEach(testCase =>
                 {
-                    var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategyType);
-                    var currentStock = stockListDto.Last().Price ?? 0;
-                    var periodEnd = stockListDto.Last().Date;
-                    _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
-                    var earns = _researchOperationService.GetEarningsResults(transactions);
-                    var result = Math.Round(earns, 10);
+                    double result = GetResult(strategyType, testCase, periodStartTimeStamp, stockListDto);
                     if (result != 0 && result > eachWindowResultParameter.Result)
                     {
                         trainDetailsParameter.BestTestCase = testCase;
                         trainDetailsParameter.Strategy = strategyType;
                         eachWindowResultParameter.Result = result;
-                        eachWindowResultParameter.Strategy = strategyType;
                     }
                 });
+
+                periodStartTimeStamp = Utils.ConvertToUnixTimestamp(window.TestPeriod.Start);
+                var testStockListDto = _dataService.GetStockDataFromExistList(allStock, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
+                // get test result by best test case
+                double result = GetResult(strategyType, trainDetailsParameter.BestTestCase, periodStartTimeStamp, testStockListDto);
+                eachWindowResultParameter.StockList = testStockListDto;
+                eachWindowResultParameter.Result = result;
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);
                 trainDetailsParameterList.Add(trainDetailsParameter);
@@ -773,6 +773,17 @@ namespace ResearchWebApi.Services
 
 
             _outputResultService.UpdateTraditionalResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
+        }
+
+        private double GetResult(StrategyType strategyType, ITestCase testCase, double periodStartTimeStamp, List<StockModelDTO> stockListDto)
+        {
+            var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategyType);
+            var currentStock = stockListDto.Last().Price ?? 0;
+            var periodEnd = stockListDto.Last().Date;
+            _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
+            var earns = _researchOperationService.GetEarningsResults(transactions);
+            var result = Math.Round(earns, 10);
+            return result;
         }
 
         private static void CompareSMAGBestByBits(ref SMAStatusValue bestGbest, ref int gBestCount, SMAStatusValue gBest, ref List<ITestCase> bestGbestList, string symbol)

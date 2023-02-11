@@ -77,7 +77,7 @@ namespace ResearchWebApi.Services
                         Mode = ResultTypeEnum.Traditional,
                         TrainId = $"{algorithmName}_{eachWindowResultParameter.Strategy}_{slidingWinPairName}_{eachWindowResultParameter.PeriodStartTimeStamp}",
                         Strategy = eachWindowResultParameter.Strategy,
-                        FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TrainPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TrainPeriod.End}",
+                        FromDateToDate = $"{eachWindowResultParameter.SlidingWindow.TestPeriod.Start} - {eachWindowResultParameter.SlidingWindow.TestPeriod.End}",
                         DayNumber = dayNumber,
                         FinalCapital = eachWindowResultParameter.Result,
                         FinalEarn = eachWindowResultParameter.Result - funds,

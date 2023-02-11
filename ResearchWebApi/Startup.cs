@@ -45,6 +45,7 @@ namespace ResearchWebApi
             services.AddScoped<ITransTimingService, TransTimingService>();
             services.AddScoped<ISMAGNQTSAlgorithmService, SMAGNQTSAlgorithmService>();
             services.AddScoped<ITrailingStopGNQTSAlgorithmService, TrailingStopGNQTSAlgorithmService>();
+            services.AddScoped<IBiasGNQTSAlgorithmService, BiasGNQTSAlgorithmService>();
             services.AddScoped<IFileHandler, FileHandler>();
             
             // DB

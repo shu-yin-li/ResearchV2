@@ -101,12 +101,20 @@ namespace ResearchWebApi.Services
                     var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
                 }
-                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop || trainDetailsParameter.Strategy == StrategyType.Bias)
+                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
                 {
                     var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa}," +
                                        $"{testCaseTrailingStop.SellShortTermMa},{testCaseTrailingStop.SellLongTermMa}," +
                                        $"{testCaseTrailingStop.StopPercentage}";
+                }
+                else if (trainDetailsParameter.Strategy == StrategyType.Bias)
+                {
+                    var testCaseBias= (TestCaseBias)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseBias.BuyShortTermMa},{testCaseBias.BuyLongTermMa}," +
+                                       $"{testCaseBias.SellShortTermMa},{testCaseBias.SellLongTermMa}," +
+                                       $"{testCaseBias.StopPercentage},{testCaseBias.BuyBiasPercentage}," +
+                                       $"{testCaseBias.SellBiasPercentage}";
                 }
 
                 return new TrainDetails
@@ -167,13 +175,22 @@ namespace ResearchWebApi.Services
                     var testCaseRsi = (TestCaseRSI)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseRsi.MeasureRangeDay},{testCaseRsi.OverSold},{testCaseRsi.OverBought}";
                 }
-                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop || trainDetailsParameter.Strategy == StrategyType.Bias)
+                else if (trainDetailsParameter.Strategy == StrategyType.TrailingStop)
                 {
                     var testCaseTrailingStop = (TestCaseTrailingStop)trainDetailsParameter.BestTestCase;
                     transactionNodes = $"{testCaseTrailingStop.BuyShortTermMa},{testCaseTrailingStop.BuyLongTermMa}," +
                                        $"{testCaseTrailingStop.SellShortTermMa},{testCaseTrailingStop.SellLongTermMa}," +
                                        $"{testCaseTrailingStop.StopPercentage}";
                 }
+                else if (trainDetailsParameter.Strategy == StrategyType.Bias)
+                {
+                    var testCaseBias = (TestCaseBias)trainDetailsParameter.BestTestCase;
+                    transactionNodes = $"{testCaseBias.BuyShortTermMa},{testCaseBias.BuyLongTermMa}," +
+                                       $"{testCaseBias.SellShortTermMa},{testCaseBias.SellLongTermMa}," +
+                                       $"{testCaseBias.StopPercentage},{testCaseBias.BuyBiasPercentage}," +
+                                       $"{testCaseBias.SellBiasPercentage}";
+                }
+
                 return new TrainDetails
                 {
                     CommonResultId = commonResultId,

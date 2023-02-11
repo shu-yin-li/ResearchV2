@@ -22,6 +22,7 @@ namespace ResearchWebApi.Services
         private readonly ISlidingWindowService _slidingWindowService;
         private readonly ISMAGNQTSAlgorithmService _smaGnqtsAlgorithmService;
         private readonly ITrailingStopGNQTSAlgorithmService _trailingStopGnqtsAlgorithmService;
+        private readonly IBiasGNQTSAlgorithmService _biasGNQTSAlgorithmService;
         private readonly ITrainDetailsDataProvider _trainDetailsDataProvider;
         private readonly IFileHandler _fileHandler;
 
@@ -36,6 +37,7 @@ namespace ResearchWebApi.Services
             ISlidingWindowService slidingWindowService,
             ISMAGNQTSAlgorithmService smaGnqtsAlgorithmService,
             ITrailingStopGNQTSAlgorithmService trailingStopGnqtsAlgorithmService,
+            IBiasGNQTSAlgorithmService biasGNQTSAlgorithmService,
             ITrainDetailsDataProvider trainDetailsDataProvider,
             IFileHandler fileHandler)
         {
@@ -46,6 +48,7 @@ namespace ResearchWebApi.Services
             _slidingWindowService = slidingWindowService ?? throw new ArgumentNullException(nameof(slidingWindowService));
             _smaGnqtsAlgorithmService = smaGnqtsAlgorithmService ?? throw new ArgumentNullException(nameof(smaGnqtsAlgorithmService));
             _trailingStopGnqtsAlgorithmService = trailingStopGnqtsAlgorithmService ?? throw new ArgumentNullException(nameof(trailingStopGnqtsAlgorithmService));
+            _biasGNQTSAlgorithmService = biasGNQTSAlgorithmService ?? throw new ArgumentNullException(nameof(biasGNQTSAlgorithmService));
             _trainDetailsDataProvider = trainDetailsDataProvider ?? throw new ArgumentNullException(nameof(trainDetailsDataProvider));
             _fileHandler = fileHandler ?? throw new ArgumentNullException(nameof(fileHandler));
         }
@@ -363,7 +366,7 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
-        public void TrainGNQTSWithTrailingStop(SlidingWinPair pair, string symbol, Period period, bool isCRandom, StrategyType strategy)
+        public void TrainGNQTSWithTrailingStop(SlidingWinPair pair, string symbol, Period period, bool isCRandom)
         {
             var random = new Random(343);
             Queue<int> cRandom = new Queue<int>();
@@ -373,6 +376,7 @@ namespace ResearchWebApi.Services
                 cRandom = _fileHandler.Readcsv("Data/srand343");
             }
 
+            var strategy = StrategyType.TrailingStop;
             List<SlidingWindow> slidingWindows = pair.IsStar
                 ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
                 : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
@@ -462,6 +466,108 @@ namespace ResearchWebApi.Services
             _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
         }
 
+        public void TrainGNQTSWithBias(SlidingWinPair pair, string symbol, Period period, bool isCRandom)
+        {
+            var random = new Random(343);
+            Queue<int> cRandom = new Queue<int>();
+            if (isCRandom)
+            {
+                Console.WriteLine("Reading C Random.");
+                cRandom = _fileHandler.Readcsv("Data/srand343");
+            }
+            var strategy = StrategyType.Bias;
+
+            List<SlidingWindow> slidingWindows = pair.IsStar
+                ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
+                : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
+
+            var eachWindowResultParameterList = new List<EachWindowResultParameter>();
+            var trainDetailsParameterList = new List<TrainDetailsParameter>();
+
+            var allStock = _dataService.GetStockDataFromDb(symbol, period.Start.AddYears(-1).AddDays(-10), period.End.AddDays(10));
+
+            slidingWindows.ForEach((window) =>
+            {
+                var periodStart = window.TrainPeriod.Start;
+                var periodEnd = window.TrainPeriod.End;
+                var copyCRandom = new Queue<int>(cRandom);
+                var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
+
+                #region Train method
+
+                // 用這邊在控制取fitness/transaction的日期區間
+                // -7 是為了取得假日之前的前一日股票，後面再把period start丟進去確認起始時間正確
+                // +1 是為了時差 取正確的最後一天
+                var stockListDto = _dataService.GetStockDataFromExistList(allStock, window.TrainPeriod.Start.AddDays(-7), window.TrainPeriod.End.AddDays(1));
+                var bestGbestList = new List<ITestCase>();
+                var bestGbest = new BiasStatusValue();
+                int gBestCount = 0;
+                //var periodStart = Utils.UnixTimeStampToDateTime(periodStartTimeStamp);
+
+                var randomSource = copyCRandom.Any() ? "CRandom" : "C#";
+                var algorithmConst = _biasGNQTSAlgorithmService.GetConst();
+
+                for (var e = 0; e < algorithmConst.EXPERIMENT_NUMBER; e++)
+                {
+                    BiasStatusValue gBest;
+                    gBest = (BiasStatusValue)_biasGNQTSAlgorithmService.Fit(copyCRandom, random, FUNDS, stockListDto, e, periodStartTimeStamp, strategy, null);
+                    CompareBiasGBestByBits(ref bestGbest, ref gBestCount, gBest, ref bestGbestList, symbol);
+                }
+
+                #endregion
+
+                #region generate result
+
+                var eachWindowResultParameter = new EachWindowResultParameter
+                {
+                    StockList = stockListDto,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    SlidingWindow = window,
+                    Strategy = strategy
+                };
+
+                var trainDetailsParameter = new TrainDetailsParameter
+                {
+                    RandomSource = randomSource,
+                    Delta = algorithmConst.DELTA,
+                    ExperimentNumber = algorithmConst.EXPERIMENT_NUMBER,
+                    Generations = algorithmConst.GENERATIONS,
+                    SearchNodeNumber = algorithmConst.SEARCH_NODE_NUMBER,
+                    PeriodStartTimeStamp = periodStartTimeStamp,
+                    Strategy = strategy
+                };
+
+                if (bestGbest.BuyMa1.Count > 0)
+                {
+                    eachWindowResultParameter.Result = bestGbest.Fitness;
+                    trainDetailsParameter.BestTestCase =
+                        new TestCaseBias
+                        {
+                            Funds = FUNDS,
+                            Symbol = symbol,
+                            BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
+                            BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                            SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
+                            SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2),
+                            StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
+                            BuyBiasPercentage = Utils.GetMaNumber(bestGbest.BuyBiasPercentage),
+                            SellBiasPercentage = Utils.GetMaNumber(bestGbest.SellBiasPercentage),
+                        };
+                    trainDetailsParameter.ExperimentNumberOfBest = bestGbest.Experiment;
+                    trainDetailsParameter.GenerationOfBest = bestGbest.Generation;
+                    trainDetailsParameter.BestCount = gBestCount;
+                    trainDetailsParameter.BestGbestList = bestGbestList;
+                }
+
+                eachWindowResultParameterList.Add(eachWindowResultParameter);
+                trainDetailsParameterList.Add(trainDetailsParameter);
+
+                #endregion
+
+            });
+            _outputResultService.UpdateGNQTSTrainResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
+        }
+
         public void TrainTraditionalWithRSI(SlidingWinPair pair, string symbol, Period period)
         {
             List<int> range = new List<int> { 5, 6, 14 };
@@ -528,7 +634,7 @@ namespace ResearchWebApi.Services
             TraditionalTrain(pair, symbol, period, StrategyType.SMA, testCases);
         }
 
-        public void TrainTraditionalWithTrailingStop(SlidingWinPair pair, string symbol, Period period, StrategyType strategy)
+        public void TrainTraditionalWithTrailingStop(SlidingWinPair pair, string symbol, Period period)
         {
             var testCases = new List<ITestCase>();
             List<int> shortMaList = new List<int> { 5, 10 };
@@ -567,7 +673,55 @@ namespace ResearchWebApi.Services
                     });
                 });
             });
-            TraditionalTrain(pair, symbol, period, strategy, testCases);
+
+            TraditionalTrain(pair, symbol, period, StrategyType.TrailingStop, testCases);
+        }
+
+        public void TrainTraditionalWithBias(SlidingWinPair pair, string symbol, Period period)
+        {
+            var testCases = new List<ITestCase>();
+            List<int> shortMaList = new List<int> { 5, 10 };
+            List<int> midMaList = new List<int> { 20, 60 };
+            List<int> longMaList = new List<int> { 120, 240 };
+            var defaultValue = 10;
+            shortMaList.ForEach((ma1) =>
+            {
+                midMaList.ForEach((ma2) =>
+                {
+                    testCases.Add(new TestCaseBias
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        BuyShortTermMa = ma1,
+                        BuyLongTermMa = ma2,
+                        SellShortTermMa = ma1,
+                        SellLongTermMa = ma2,
+                        StopPercentage = defaultValue,
+                        BuyBiasPercentage = defaultValue,
+                        SellBiasPercentage = defaultValue
+                    });
+                });
+            });
+            midMaList.ForEach((ma1) =>
+            {
+                longMaList.ForEach((ma2) =>
+                {
+                    testCases.Add(new TestCaseBias
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        BuyShortTermMa = ma1,
+                        BuyLongTermMa = ma2,
+                        SellShortTermMa = ma1,
+                        SellLongTermMa = ma2,
+                        StopPercentage = defaultValue,
+                        BuyBiasPercentage = defaultValue,
+                        SellBiasPercentage = defaultValue
+                    });
+                });
+            });
+
+            TraditionalTrain(pair, symbol, period, StrategyType.Bias, testCases);
         }
 
         public void GetStockTransaction(SlidingWinPair pair, string algorithmName, string symbol, Period period, StrategyType strategy)
@@ -826,6 +980,8 @@ namespace ResearchWebApi.Services
             if (
                 Utils.GetMaNumber(bestGbest.BuyMa1) == Utils.GetMaNumber(gBest.BuyMa1) &&
                 Utils.GetMaNumber(bestGbest.BuyMa2) == Utils.GetMaNumber(gBest.BuyMa2) &&
+                Utils.GetMaNumber(bestGbest.SellMa1) == Utils.GetMaNumber(gBest.SellMa1) &&
+                Utils.GetMaNumber(bestGbest.SellMa2) == Utils.GetMaNumber(gBest.SellMa2) &&
                 Utils.GetMaNumber(bestGbest.StopPercentage) == Utils.GetMaNumber(gBest.StopPercentage) &&
                 bestGbest.Fitness == gBest.Fitness
                 ) gBestCount++;
@@ -840,6 +996,41 @@ namespace ResearchWebApi.Services
                     SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
                     SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2),
                     StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
+                });
+            }
+        }
+
+        private static void CompareBiasGBestByBits(ref BiasStatusValue bestGbest, ref int gBestCount, BiasStatusValue gBest, ref List<ITestCase> bestGbestList, string symbol)
+        {
+            if (bestGbest.Fitness < gBest.Fitness)
+            {
+                bestGbest = (BiasStatusValue)gBest.DeepClone();
+                gBestCount = 0;
+            }
+
+            if (
+                Utils.GetMaNumber(bestGbest.BuyMa1) == Utils.GetMaNumber(gBest.BuyMa1) &&
+                Utils.GetMaNumber(bestGbest.BuyMa2) == Utils.GetMaNumber(gBest.BuyMa2) &&
+                Utils.GetMaNumber(bestGbest.SellMa1) == Utils.GetMaNumber(gBest.SellMa1) &&
+                Utils.GetMaNumber(bestGbest.SellMa2) == Utils.GetMaNumber(gBest.SellMa2) &&
+                Utils.GetMaNumber(bestGbest.StopPercentage) == Utils.GetMaNumber(gBest.StopPercentage) &&
+                Utils.GetMaNumber(bestGbest.BuyBiasPercentage) == Utils.GetMaNumber(gBest.BuyBiasPercentage) &&
+                Utils.GetMaNumber(bestGbest.SellBiasPercentage) == Utils.GetMaNumber(gBest.SellBiasPercentage) &&
+                bestGbest.Fitness == gBest.Fitness
+                ) gBestCount++;
+
+            if (bestGbest.Fitness == gBest.Fitness)
+            {
+                bestGbestList.Add(new TestCaseBias
+                {
+                    Symbol = symbol,
+                    BuyShortTermMa = Utils.GetMaNumber(bestGbest.BuyMa1),
+                    BuyLongTermMa = Utils.GetMaNumber(bestGbest.BuyMa2),
+                    SellShortTermMa = Utils.GetMaNumber(bestGbest.SellMa1),
+                    SellLongTermMa = Utils.GetMaNumber(bestGbest.SellMa2),
+                    StopPercentage = Utils.GetMaNumber(bestGbest.StopPercentage),
+                    BuyBiasPercentage = Utils.GetMaNumber(bestGbest.BuyBiasPercentage),
+                    SellBiasPercentage = Utils.GetMaNumber(bestGbest.SellBiasPercentage),
                 });
             }
         }

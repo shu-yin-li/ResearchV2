@@ -25,7 +25,7 @@ namespace ResearchWebApi.Controllers
             Start = new DateTime(2012, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
             End = new DateTime(2021, 12, 31, 0, 0, 0, System.DateTimeKind.Utc)
         };
-        private List<string> _defaultSymbols = new List<string> { "^DJI", "^INX", "^IXIC", "^NYA", "AAPL", "AMGN", "AXP", "BA", "CAT", "CRM", "CSCO", "CVX",
+        private List<string> _defaultSymbols = new List<string> { "^DJI", "^GSPC", "^IXIC", "^NYA", "AAPL", "AMGN", "AXP", "BA", "CAT", "CRM", "CSCO", "CVX",
                                                                     "DD", "DIS", "GS", "HD", "HON", "IBM", "INTC", "JNJ", "JPM", "KO", "MCD", "MMM", "MRK",
                                                                     "MSFT", "NKE", "PG", "TRV", "UNH", "V", "VZ","WBA", "WMT"};
 
@@ -186,7 +186,7 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Sell == StrategyType.TrailingStop)
             {
                 BackgroundJob.Enqueue(()
-                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, StrategyType.TrailingStop));
+                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
                 return true;
             }
 
@@ -195,7 +195,7 @@ namespace ResearchWebApi.Controllers
                 && trainParameter.TransactionTiming.Sell == StrategyType.Bias)
             {
                 BackgroundJob.Enqueue(()
-                    => _jobsService.TrainTraditionalWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period, StrategyType.Bias));
+                    => _jobsService.TrainTraditionalWithBias(trainParameter.SlidingWinPair, trainParameter.Symbol, trainParameter.Period));
                 return true;
             }
 
@@ -237,7 +237,7 @@ namespace ResearchWebApi.Controllers
                         Start = new DateTime(tempYear, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
                         End = new DateTime(tempYear, 12, 31, 0, 0, 0, System.DateTimeKind.Utc),
                     };
-                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom, StrategyType.TrailingStop));
+                    BackgroundJob.Enqueue(() => _jobsService. TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
                     tempYear++;
                 } while (tempYear <= trainParameter.Period.End.Year);
                 return true;
@@ -255,7 +255,7 @@ namespace ResearchWebApi.Controllers
                         Start = new DateTime(tempYear, 1, 1, 0, 0, 0, System.DateTimeKind.Utc),
                         End = new DateTime(tempYear, 12, 31, 0, 0, 0, System.DateTimeKind.Utc),
                     };
-                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithTrailingStop(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom, StrategyType.Bias));
+                    BackgroundJob.Enqueue(() => _jobsService.TrainGNQTSWithBias(trainParameter.SlidingWinPair, trainParameter.Symbol, period, trainParameter.IsCRandom));
                     tempYear++;
                 } while (tempYear <= trainParameter.Period.End.Year);
                 return true;

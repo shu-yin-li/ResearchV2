@@ -231,7 +231,7 @@ namespace ResearchWebApi.Services
 
                 }
                 // Note: 注意現在是用哪一種時機點
-                else if (testToSell)
+                else if (stock.SellShortTermMa != null && stock.SellLongTermMa != null && testToSell)
                 {
                     var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
                     lastTrans = new StockTransactionSMA
@@ -261,19 +261,21 @@ namespace ResearchWebApi.Services
         {
             bool hasQty = false;
             bool firstDay = true;
-            var testCaseTrailingStop = (TestCaseTrailingStop)testCase;
+            var testCaseBias = (TestCaseBias)testCase;
             double maxPrice = 0;
-            var trailingStopPercentage = testCaseTrailingStop.StopPercentage;
-            List<StockModelTransInfo> stockInfoList = MapStockInfo(stockList, periodStartTimeStamp, testCaseTrailingStop);
+            var trailingStopPercentage = testCaseBias.StopPercentage;
+            var buyBiasPercentage = testCaseBias.BuyBiasPercentage;
+            var sellBiasPercentage = testCaseBias.SellBiasPercentage;
+            List<StockModelTransInfo> stockInfoList = MapStockInfo(stockList, periodStartTimeStamp, testCaseBias);
 
             stockInfoList.FindAll(stock => stock.Date > periodStartTimeStamp).ForEach(stock =>
             {
                 var price = stock.Price ?? 0;
 
                 bool testToBuy = firstDay
-                        ? stock.BuyShortTermMa > stock.BuyLongTermMa
-                        : _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
-                bool testToSell = (_transTimingService.TimeToSellCheckingByBias(price, stock.BuyShortTermMa) &&
+                        ? _transTimingService.TimeToBuyCheckingByBias(price, stock.BuyShortTermMa, buyBiasPercentage) && stock.BuyShortTermMa > stock.BuyLongTermMa
+                        : _transTimingService.TimeToBuyCheckingByBias(price, stock.BuyShortTermMa, buyBiasPercentage) && _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
+                bool testToSell = (_transTimingService.TimeToSellCheckingByBias(price, stock.SellShortTermMa, sellBiasPercentage) &&
                                     _transTimingService.TimeToSell(stock.SellShortTermMa, stock.SellLongTermMa, stock.PrevSellShortTermMa, stock.PrevSellLongTermMa, hasQty))
                                     || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
 
@@ -297,7 +299,7 @@ namespace ResearchWebApi.Services
 
                 }
                 // Note: 注意現在是用哪一種時機點
-                else if (testToSell)
+                else if (stock.SellShortTermMa != null && stock.SellLongTermMa != null && testToSell)
                 {
                     var volume = _calculateVolumeService.CalculateSellingVolume(myTransactions.LastOrDefault().TransVolume);
                     lastTrans = new StockTransactionSMA

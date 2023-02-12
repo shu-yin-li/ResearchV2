@@ -24,13 +24,13 @@ namespace ResearchWebApi.Services
             return check;
         }
 
-        // 乖離率檢查（買入＋乖離）
+        // 乖離率檢查（負乖離很大的時候買入）
         public bool TimeToBuyCheckingByBias(double currentPrice, double? shortMaVal, int buyBiasPercentage)
         {
             if (shortMaVal == null) return false;
             double gap = (double)(currentPrice - shortMaVal);
             var bias = Math.Abs(gap) * 100 / shortMaVal;
-            return currentPrice <= shortMaVal || currentPrice > shortMaVal && bias < buyBiasPercentage;
+            return currentPrice < shortMaVal && bias > buyBiasPercentage;
         }
 
         // 黃金交叉
@@ -67,14 +67,14 @@ namespace ResearchWebApi.Services
             return rsi < overSell && hasQty == false && check;
         }
 
-        // 乖離率檢查（賣出＋乖離）
+        // 乖離率檢查（正乖離很大的時候賣出）
         public bool TimeToSellCheckingByBias(double currentPrice, double? shortMaVal, int sellBiasPercentage)
         {
             if (shortMaVal == null) return false;
 
             double gap = (double)(currentPrice - shortMaVal);
             var bias = Math.Abs(gap) * 100 / shortMaVal;
-            return currentPrice >= shortMaVal || currentPrice < shortMaVal && bias < sellBiasPercentage;
+            return currentPrice > shortMaVal && bias > sellBiasPercentage;
         }
 
         // 死亡交叉

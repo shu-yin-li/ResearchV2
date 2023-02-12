@@ -698,8 +698,8 @@ namespace ResearchWebApi.Services
                         SellShortTermMa = ma1,
                         SellLongTermMa = ma2,
                         StopPercentage = defaultValue,
-                        BuyBiasPercentage = defaultValue,
-                        SellBiasPercentage = defaultValue
+                        BuyBiasPercentage = 15,
+                        SellBiasPercentage = 15
                     });
                 });
             });
@@ -716,8 +716,8 @@ namespace ResearchWebApi.Services
                         SellShortTermMa = ma1,
                         SellLongTermMa = ma2,
                         StopPercentage = defaultValue,
-                        BuyBiasPercentage = defaultValue,
-                        SellBiasPercentage = defaultValue
+                        BuyBiasPercentage = 15,
+                        SellBiasPercentage = 15
                     });
                 });
             });

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using AutoMapper;
 using CsvHelper;
+using Newtonsoft.Json;
 using ResearchWebApi.Enums;
 using ResearchWebApi.Interface;
 using ResearchWebApi.Models;
@@ -782,27 +783,7 @@ namespace ResearchWebApi.Services
                 //_researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
-                var results = transactions.Select(trans =>
-                {
-                    var result = new StockTransactionResult
-                    {
-                        TrainId = trainId,
-                        SlidingWinPairName = slidingWinPairName,
-                        TransactionNodes = trainDetails.TransactionNodes,
-                        FromDateToDate = $"{window.TrainPeriod.Start} - {window.TrainPeriod.End}",
-                        Strategy = strategy,
-                        TransTime = trans.TransTime,
-                        TransTimeString = "",
-                        TransPrice = trans.TransPrice,
-                        TransType = trans.TransType,
-                        TransVolume = trans.TransVolume,
-                        Balance = trans.Balance,
-                        Mode = ResultTypeEnum.Train
-                    };
-                    
-                    return result;
-                });
-                stockTransactionResultList.AddRange(results);
+                BuildStockTransactionResults(strategy, window, slidingWinPairName, stockTransactionResultList, trainId, trainDetails.TransactionNodes, transactions);
             });
 
             _outputResultService.UpdateStockTransactionResult(stockTransactionResultList);
@@ -875,6 +856,9 @@ namespace ResearchWebApi.Services
                             ? _slidingWindowService.GetSlidingWindows(period, pair.Train)
                             : _slidingWindowService.GetSlidingWindows(period, pair.Train, pair.Test);
 
+            var slidingWinPairName = pair.IsStar ? $"{pair.Train}*" : $"{pair.Train}2{pair.Test}";
+            var stockTransactionResultList = new List<StockTransactionResult>();
+
             var eachWindowResultParameterList = new List<EachWindowResultParameter>();
             var trainDetailsParameterList = new List<TrainDetailsParameter>();
             var algorithmConst = strategyType == StrategyType.SMA ? _smaGnqtsAlgorithmService.GetConst() : _trailingStopGnqtsAlgorithmService.GetConst();
@@ -883,6 +867,7 @@ namespace ResearchWebApi.Services
 
             slidingWindows.ForEach((window) =>
             {
+                var trainId = $"Traditional_{strategyType}_{slidingWinPairName}_{Utils.ConvertToUnixTimestamp(window.TrainPeriod.Start)}";
                 var periodStart = window.TrainPeriod.Start;
                 var periodStartTimeStamp = Utils.ConvertToUnixTimestamp(periodStart);
 
@@ -905,7 +890,7 @@ namespace ResearchWebApi.Services
 
                 testCases.ForEach(testCase =>
                 {
-                    double result = GetResult(strategyType, testCase, periodStartTimeStamp, stockListDto);
+                    (double result, var t) = GetResult(strategyType, testCase, periodStartTimeStamp, stockListDto);
                     if (result != 0 && result > eachWindowResultParameter.Result)
                     {
                         trainDetailsParameter.BestTestCase = testCase;
@@ -917,19 +902,21 @@ namespace ResearchWebApi.Services
                 periodStartTimeStamp = Utils.ConvertToUnixTimestamp(window.TestPeriod.Start);
                 var testStockListDto = _dataService.GetStockDataFromExistList(allStock, window.TestPeriod.Start.AddDays(-7), window.TestPeriod.End.AddDays(1));
                 // get test result by best test case
-                double result = GetResult(strategyType, trainDetailsParameter.BestTestCase, periodStartTimeStamp, testStockListDto);
+                (double result, var transactions) = GetResult(strategyType, trainDetailsParameter.BestTestCase, periodStartTimeStamp, testStockListDto);
                 eachWindowResultParameter.StockList = testStockListDto;
                 eachWindowResultParameter.Result = result;
+
+                BuildStockTransactionResults(strategyType, window, slidingWinPairName, stockTransactionResultList, trainId, JsonConvert.SerializeObject(trainDetailsParameter.BestTestCase), transactions);
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);
                 trainDetailsParameterList.Add(trainDetailsParameter);
             });
 
-
             _outputResultService.UpdateTraditionalResultsInDb(FUNDS, symbol, pair, eachWindowResultParameterList, trainDetailsParameterList);
+            _outputResultService.UpdateStockTransactionResult(stockTransactionResultList);
         }
 
-        private double GetResult(StrategyType strategyType, ITestCase testCase, double periodStartTimeStamp, List<StockModelDTO> stockListDto)
+        private (double, List<StockTransaction>) GetResult(StrategyType strategyType, ITestCase testCase, double periodStartTimeStamp, List<StockModelDTO> stockListDto)
         {
             var transactions = _researchOperationService.GetMyTransactions(stockListDto, testCase, periodStartTimeStamp, strategyType);
             var currentStock = stockListDto.Last().Price ?? 0;
@@ -937,7 +924,32 @@ namespace ResearchWebApi.Services
             _researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
             var earns = _researchOperationService.GetEarningsResults(transactions);
             var result = Math.Round(earns, 10);
-            return result;
+            return (result, transactions);
+        }
+
+        private static void BuildStockTransactionResults(StrategyType strategy, SlidingWindow window, string slidingWinPairName, List<StockTransactionResult> stockTransactionResultList, string trainId, string transactionNodes, List<StockTransaction> transactions)
+        {
+            var results = transactions.Select(trans =>
+            {
+                var result = new StockTransactionResult
+                {
+                    TrainId = trainId,
+                    SlidingWinPairName = slidingWinPairName,
+                    TransactionNodes = transactionNodes,
+                    FromDateToDate = $"{window.TrainPeriod.Start} - {window.TrainPeriod.End}",
+                    Strategy = strategy,
+                    TransTime = trans.TransTime,
+                    TransTimeString = "",
+                    TransPrice = trans.TransPrice,
+                    TransType = trans.TransType,
+                    TransVolume = trans.TransVolume,
+                    Balance = trans.Balance,
+                    Mode = ResultTypeEnum.Train
+                };
+
+                return result;
+            });
+            stockTransactionResultList.AddRange(results);
         }
 
         private static void CompareSMAGBestByBits(ref SMAStatusValue bestGbest, ref int gBestCount, SMAStatusValue gBest, ref List<ITestCase> bestGbestList, string symbol)

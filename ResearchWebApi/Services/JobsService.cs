@@ -783,7 +783,7 @@ namespace ResearchWebApi.Services
                 //_researchOperationService.ProfitSettlement(currentStock, stockListDto, testCase, transactions, periodEnd);
                 var earns = _researchOperationService.GetEarningsResults(transactions);
                 var result = Math.Round(earns, 10);
-                BuildStockTransactionResults(strategy, window, slidingWinPairName, stockTransactionResultList, trainId, trainDetails.TransactionNodes, transactions);
+                BuildStockTransactionResults(strategy, window, slidingWinPairName, stockTransactionResultList, trainId, trainDetails.TransactionNodes, transactions, ResultTypeEnum.Train);
             });
 
             _outputResultService.UpdateStockTransactionResult(stockTransactionResultList);
@@ -906,7 +906,7 @@ namespace ResearchWebApi.Services
                 eachWindowResultParameter.StockList = testStockListDto;
                 eachWindowResultParameter.Result = result;
 
-                BuildStockTransactionResults(strategyType, window, slidingWinPairName, stockTransactionResultList, trainId, JsonConvert.SerializeObject(trainDetailsParameter.BestTestCase), transactions);
+                BuildStockTransactionResults(strategyType, window, slidingWinPairName, stockTransactionResultList, trainId, JsonConvert.SerializeObject(trainDetailsParameter.BestTestCase), transactions, ResultTypeEnum.Traditional);
 
                 eachWindowResultParameterList.Add(eachWindowResultParameter);
                 trainDetailsParameterList.Add(trainDetailsParameter);
@@ -927,7 +927,7 @@ namespace ResearchWebApi.Services
             return (result, transactions);
         }
 
-        private static void BuildStockTransactionResults(StrategyType strategy, SlidingWindow window, string slidingWinPairName, List<StockTransactionResult> stockTransactionResultList, string trainId, string transactionNodes, List<StockTransaction> transactions)
+        private static void BuildStockTransactionResults(StrategyType strategy, SlidingWindow window, string slidingWinPairName, List<StockTransactionResult> stockTransactionResultList, string trainId, string transactionNodes, List<StockTransaction> transactions, ResultTypeEnum resultTypeEnum)
         {
             var results = transactions.Select(trans =>
             {
@@ -944,7 +944,7 @@ namespace ResearchWebApi.Services
                     TransType = trans.TransType,
                     TransVolume = trans.TransVolume,
                     Balance = trans.Balance,
-                    Mode = ResultTypeEnum.Train
+                    Mode = resultTypeEnum
                 };
 
                 return result;

@@ -273,9 +273,9 @@ namespace ResearchWebApi.Services
                 var price = stock.Price ?? 0;
 
                 bool testToBuy = firstDay
-                        ? _transTimingService.TimeToBuyCheckingByBias(price, stock.BuyShortTermMa, buyBiasPercentage) || stock.BuyShortTermMa > stock.BuyLongTermMa
-                        : _transTimingService.TimeToBuyCheckingByBias(price, stock.BuyShortTermMa, buyBiasPercentage) || _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
-                bool testToSell = _transTimingService.TimeToSellCheckingByBias(price, stock.SellShortTermMa, sellBiasPercentage) 
+                        ? _transTimingService.TimeToBuyCheckingByBias(price, stock.BuyShortTermMa, buyBiasPercentage, hasQty) || stock.BuyShortTermMa > stock.BuyLongTermMa
+                        : _transTimingService.TimeToBuyCheckingByBias(price, stock.BuyShortTermMa, buyBiasPercentage, hasQty) || _transTimingService.TimeToBuy(stock.BuyShortTermMa, stock.BuyLongTermMa, stock.PrevBuyShortTermMa, stock.PrevBuyLongTermMa, hasQty);
+                bool testToSell = _transTimingService.TimeToSellCheckingByBias(price, stock.SellShortTermMa, sellBiasPercentage, hasQty) 
                                     || _transTimingService.TimeToSell(stock.SellShortTermMa, stock.SellLongTermMa, stock.PrevSellShortTermMa, stock.PrevSellLongTermMa, hasQty)
                                     || _transTimingService.TimeToSell(lastTrans, ref maxPrice, price, stock.Date, trailingStopPercentage, hasQty);
 

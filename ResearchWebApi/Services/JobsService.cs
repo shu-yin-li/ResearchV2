@@ -178,7 +178,7 @@ namespace ResearchWebApi.Services
                         SellLongTermMa = int.Parse(transNodes[3]),
                     };
                 }
-                else
+                else if(strategy == StrategyType.TrailingStop)
                 {
                     testCase = new TestCaseTrailingStop
                     {
@@ -192,7 +192,23 @@ namespace ResearchWebApi.Services
                         StopPercentage = int.Parse(transNodes[4])
                     };
                 }
-                
+                else
+                {
+                    testCase = new TestCaseBias
+                    {
+                        Funds = FUNDS,
+                        Symbol = symbol,
+                        Type = ResultTypeEnum.Test,
+                        BuyShortTermMa = int.Parse(transNodes[0]),
+                        BuyLongTermMa = int.Parse(transNodes[1]),
+                        SellShortTermMa = int.Parse(transNodes[2]),
+                        SellLongTermMa = int.Parse(transNodes[3]),
+                        StopPercentage = int.Parse(transNodes[4]),
+                        BuyBiasPercentage = int.Parse(transNodes[5]),
+                        SellBiasPercentage = int.Parse(transNodes[6]),
+                    };
+                }
+
 
                 List<StockTransaction> transactions = new List<StockTransaction>();
                 var periodStart = window.TestPeriod.Start;
